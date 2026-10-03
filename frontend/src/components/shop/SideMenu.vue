@@ -1,10 +1,10 @@
 <script setup>
 // Account / settings menu opened from the ☰ button in the header.
 // Desktop: dropdown panel under the header. Phone: drawer from the right.
-// Language and theme work; the other items are UI only for now (marked TODO).
+// Account, language, theme, favourites and info pages.
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import {
-  Cancel01Icon, Login01Icon, UserAdd01Icon, TranslateIcon, Moon02Icon, FavouriteIcon,
+  Cancel01Icon, Login01Icon, UserAdd01Icon, Logout01Icon, TranslateIcon, Moon02Icon, FavouriteIcon,
   InformationCircleIcon, LegalDocument01Icon, ReturnRequestIcon, Shield01Icon,
   ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon,
   Sun03Icon, ComputerIcon,
@@ -12,6 +12,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { LOCALES, setLocale } from '../../i18n/index.js'
 import { favouriteCount } from '../../stores/shop.js'
+import { session, logOut } from '../../stores/auth.js'
 import { useRouter } from 'vue-router'
 import { THEMES, themePref, resolvedTheme, setTheme } from '../../lib/theme.js'
 import Icon from './Icon.vue'
@@ -44,7 +45,6 @@ function chooseTheme(name) {
 }
 const router = useRouter()
 
-// TODO: wire up sign-in.
 const settings = computed(() => [
   { id: 'language', icon: TranslateIcon, label: t('menu.language'), value: currentLanguage.value, action: () => showView('language') },
   { id: 'theme', icon: resolvedTheme.value === 'dark' ? Moon02Icon : Sun03Icon, label: t('menu.theme'), value: themeLabel(themePref.value), action: () => showView('theme') },
@@ -145,13 +145,23 @@ onBeforeUnmount(() => {
         </section>
 
         <template v-else>
-        <!-- Sign in (placeholder) -->
-        <section class="menu-section menu-auth">
+        <!-- Account -->
+        <section v-if="session.user" class="menu-section menu-account">
+          <span class="menu-avatar" aria-hidden="true">{{ session.user.name.charAt(0).toUpperCase() }}</span>
+          <span class="menu-account-text">
+            <strong>{{ session.user.name }}</strong>
+            <span class="muted small">{{ session.user.email }}</span>
+          </span>
+          <button type="button" class="menu-logout" :aria-label="$t('auth.logOut')" :title="$t('auth.logOut')" @click="logOut">
+            <Icon :icon="Logout01Icon" :size="20" />
+          </button>
+        </section>
+        <section v-else class="menu-section menu-auth">
           <p class="menu-hint">{{ $t('menu.signInHint') }}</p>
-          <button type="button" class="auth-btn auth-login">
+          <button type="button" class="auth-btn auth-login" @click="router.push('/login')">
             <Icon :icon="Login01Icon" :size="18" /> {{ $t('menu.logIn') }}
           </button>
-          <button type="button" class="auth-btn auth-register">
+          <button type="button" class="auth-btn auth-register" @click="router.push('/register')">
             <Icon :icon="UserAdd01Icon" :size="18" /> {{ $t('menu.register') }}
           </button>
         </section>

@@ -41,6 +41,7 @@ VITE_POLICY_URL=http://localhost:8001
 |------|--------------|
 | `src/data/catalog.js` | Demo products, stores and categories (prices per store, HKD) |
 | `src/lib/pricing.js` | Cheapest offer, optimal mix, single-store totals, savings |
+| `src/stores/auth.js` | Log-in session. **Not connected to a server yet:** keeps only name/email/phone in the browser, never the password. Replace `logIn`/`register` with the accounts API |
 | `src/stores/shop.js` | Cart + favourites (saved in localStorage) |
 | `src/views/` | One file per page |
 | `src/content/` | About page and legal documents (Terms, Return Policy, Privacy Policy) in all three languages. **Drafts: have a Hong Kong solicitor review before launch.** Update `LEGAL_UPDATED` in `index.js` when you change them |
