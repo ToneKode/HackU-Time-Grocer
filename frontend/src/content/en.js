@@ -213,7 +213,7 @@ export default {
         body: [
           {
             list: [
-              'Account data: your name and email from Google or Apple sign-in.',
+              'Account data: your name, email address and password. Passwords are stored only in hashed form.',
               'Delivery data: delivery address and phone number, shared with the merchant that fulfils your order.',
               'Shopping data: searches, cart, favourites, the instructions you give the agent, orders and approvals.',
               'Payment data: a payment token, card network and last four digits. Your full card number and security code are held only by our payment provider.',

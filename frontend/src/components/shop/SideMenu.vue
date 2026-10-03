@@ -4,7 +4,7 @@
 // Language and theme work; the other items are UI only for now (marked TODO).
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import {
-  Cancel01Icon, GoogleIcon, AppleIcon, TranslateIcon, Moon02Icon, FavouriteIcon,
+  Cancel01Icon, Login01Icon, UserAdd01Icon, TranslateIcon, Moon02Icon, FavouriteIcon,
   InformationCircleIcon, LegalDocument01Icon, ReturnRequestIcon, Shield01Icon,
   ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon,
   Sun03Icon, ComputerIcon,
@@ -148,11 +148,11 @@ onBeforeUnmount(() => {
         <!-- Sign in (placeholder) -->
         <section class="menu-section menu-auth">
           <p class="menu-hint">{{ $t('menu.signInHint') }}</p>
-          <button type="button" class="auth-btn auth-google">
-            <Icon :icon="GoogleIcon" :size="18" /> {{ $t('menu.google') }}
+          <button type="button" class="auth-btn auth-login">
+            <Icon :icon="Login01Icon" :size="18" /> {{ $t('menu.logIn') }}
           </button>
-          <button type="button" class="auth-btn auth-apple">
-            <Icon :icon="AppleIcon" :size="18" /> {{ $t('menu.apple') }}
+          <button type="button" class="auth-btn auth-register">
+            <Icon :icon="UserAdd01Icon" :size="18" /> {{ $t('menu.register') }}
           </button>
         </section>
 

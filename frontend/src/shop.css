@@ -417,9 +417,8 @@ button { font: inherit; color: inherit; }
   display: flex; align-items: center; justify-content: center; gap: 8px;
   border: 0; border-radius: 12px; padding: 11px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
 }
-.auth-google { background: var(--primary); color: var(--primary-ink); }
-.auth-apple { background: #0b0b0b; color: #fff; }
-:root[data-theme="dark"] .auth-apple { background: #fff; color: #0b0b0b; }
+.auth-login { background: var(--primary); color: var(--primary-ink); }
+.auth-register { background: var(--primary-soft); color: var(--primary); }
 
 .menu-row {
   width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
