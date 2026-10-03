@@ -7,8 +7,8 @@ const qty = defineModel({ type: Number, required: true })
 
 <template>
   <div class="stepper">
-    <button type="button" aria-label="Remove one" @click="qty = qty - 1"><Icon :icon="MinusSignIcon" :size="16" :stroke-width="2.2" /></button>
+    <button type="button" :aria-label="$t('card.removeOne')" @click="qty = qty - 1"><Icon :icon="MinusSignIcon" :size="16" :stroke-width="2.2" /></button>
     <span>{{ qty }}</span>
-    <button type="button" aria-label="Add one" @click="qty = qty + 1"><Icon :icon="PlusSignIcon" :size="16" :stroke-width="2.2" /></button>
+    <button type="button" :aria-label="$t('card.addOne')" @click="qty = qty + 1"><Icon :icon="PlusSignIcon" :size="16" :stroke-width="2.2" /></button>
   </div>
 </template>

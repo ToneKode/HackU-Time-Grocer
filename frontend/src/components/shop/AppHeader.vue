@@ -32,10 +32,10 @@ function search() {
 }
 
 const nav = [
-  { to: '/', label: 'Home', icon: Home01Icon },
-  { to: '/catalog', label: 'Catalog', icon: GridViewIcon },
-  { to: '/cart', label: 'Cart', icon: ShoppingCart01Icon, badge: true },
-  { to: '/agent', label: 'Agent', icon: AiMagicIcon },
+  { to: '/', label: 'nav.home', icon: Home01Icon },
+  { to: '/catalog', label: 'nav.catalog', icon: GridViewIcon },
+  { to: '/cart', label: 'nav.cart', icon: ShoppingCart01Icon, badge: true },
+  { to: '/agent', label: 'nav.agent', icon: AiMagicIcon },
 ]
 </script>
 
@@ -49,7 +49,7 @@ const nav = [
 
       <form class="search" role="search" @submit.prevent="search">
         <span class="search-icon"><Icon :icon="Search01Icon" :size="18" /></span>
-        <input v-model="query" type="search" placeholder="Search for low prices…" aria-label="Search products" />
+        <input v-model="query" type="search" :placeholder="$t('nav.searchPlaceholder')" :aria-label="$t('nav.searchLabel')" />
       </form>
 
       <nav class="nav">
@@ -58,18 +58,18 @@ const nav = [
             <Icon :icon="item.icon" />
             <span v-if="item.badge && cartCount" class="nav-badge">{{ cartCount }}</span>
           </span>
-          <span class="nav-label">{{ item.label }}</span>
+          <span class="nav-label">{{ $t(item.label) }}</span>
         </RouterLink>
       </nav>
 
-      <span class="location"><Icon :icon="Location01Icon" :size="16" /> Hong Kong</span>
+      <span class="location"><Icon :icon="Location01Icon" :size="16" /> {{ $t('nav.location') }}</span>
 
       <button
         ref="menuButton"
         type="button"
         class="menu-btn"
         :class="{ on: menuOpen }"
-        aria-label="Open menu"
+        :aria-label="$t('nav.openMenu')"
         aria-controls="side-menu"
         :aria-expanded="menuOpen"
         @click="menuOpen ? closeMenu() : (menuOpen = true)"

@@ -1,6 +1,7 @@
 <script setup>
 import { merchants } from '../../data/catalog.js'
 import MerchantLogo from './MerchantLogo.vue'
+import { storeName } from '../../i18n/index.js'
 
 // multiple=false: v-model is a merchant name or null (= all stores)
 // multiple=true:  v-model is an array of selected merchant names
@@ -29,7 +30,7 @@ function toggle(name) {
       :class="{ on: model == null }"
       @click="model = null"
     >
-      All stores
+      {{ $t('stores.all') }}
     </button>
     <button
       v-for="m in merchants"
@@ -41,7 +42,7 @@ function toggle(name) {
       @click="toggle(m.name)"
     >
       <MerchantLogo :name="m.name" :size="22" />
-      {{ m.name }}
+      {{ storeName(m.name) }}
     </button>
   </div>
 </template>

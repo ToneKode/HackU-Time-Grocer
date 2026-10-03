@@ -5,6 +5,7 @@ import { bestOffer, discountPct } from '../lib/pricing.js'
 import ProductCard from '../components/shop/ProductCard.vue'
 import MerchantChips from '../components/shop/MerchantChips.vue'
 import Icon from '../components/shop/Icon.vue'
+import { storeName, categoryLabel, listOf } from '../i18n/index.js'
 import {
   BroccoliIcon, MilkBottleIcon, Bread01Icon, Apple01Icon, TissuePaperIcon, EggsIcon, FlashIcon,
 } from '@hugeicons/core-free-icons'
@@ -35,14 +36,11 @@ const deals = computed(() => {
   <main class="page">
     <section class="hero">
       <div class="hero-text">
-        <h1>Compare the whole basket <span class="accent">and let the agent check out</span></h1>
-        <p>
-          Build your list once. Grocer finds the cheapest store for every item across
-          {{ merchants.map((m) => m.name).join(', ') }}.
-        </p>
+        <h1>{{ $t('home.heroTitle') }} <span class="accent">{{ $t('home.heroAccent') }}</span></h1>
+        <p>{{ $t('home.heroText', { stores: listOf(merchants.map((m) => storeName(m.name))) }) }}</p>
         <div class="hero-actions">
-          <RouterLink to="/catalog" class="btn-primary">Browse catalog</RouterLink>
-          <RouterLink to="/cart" class="btn-soft">Open my cart</RouterLink>
+          <RouterLink to="/catalog" class="btn-primary">{{ $t('home.browseCatalog') }}</RouterLink>
+          <RouterLink to="/cart" class="btn-soft">{{ $t('home.openCart') }}</RouterLink>
         </div>
       </div>
       <div class="hero-art" aria-hidden="true">
@@ -50,7 +48,7 @@ const deals = computed(() => {
       </div>
     </section>
 
-    <nav class="category-row" aria-label="Categories">
+    <nav class="category-row" :aria-label="$t('home.categories')">
       <RouterLink
         v-for="c in categories"
         :key="c.id"
@@ -58,19 +56,19 @@ const deals = computed(() => {
         class="category-pill"
         :style="{ background: c.tint }"
       >
-        <Icon :icon="c.icon" :size="20" class="category-icon" />{{ c.label }}
+        <Icon :icon="c.icon" :size="20" class="category-icon" />{{ categoryLabel(c.id) }}
       </RouterLink>
     </nav>
 
     <section>
       <div class="section-head">
-        <h2><Icon :icon="FlashIcon" :size="22" class="title-icon" /> Mega deals <span class="muted">({{ deals.length }})</span></h2>
+        <h2><Icon :icon="FlashIcon" :size="22" class="title-icon" /> {{ $t('home.megaDeals') }} <span class="muted">({{ deals.length }})</span></h2>
       </div>
       <MerchantChips v-model="merchant" />
       <div class="product-grid">
         <ProductCard v-for="p in deals" :key="p.id" :product="p" :merchant="merchant" />
       </div>
-      <p v-if="!deals.length" class="empty-note">No deals at this store right now.</p>
+      <p v-if="!deals.length" class="empty-note">{{ $t('home.noDeals') }}</p>
     </section>
   </main>
 </template>

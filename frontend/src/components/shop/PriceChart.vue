@@ -4,6 +4,10 @@
 // annotate: label the period low and the last value (used for the single "min price" line).
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { money } from '../../lib/format.js'
+import { useI18n } from 'vue-i18n'
+import { dateLocale } from '../../i18n/index.js'
+
+const { t } = useI18n()
 
 const props = defineProps({
   series: { type: Array, required: true },
@@ -54,7 +58,7 @@ const x = (i) => pad.left + (n.value > 1 ? (i / (n.value - 1)) * innerW.value : 
 const y = (v) => pad.top + (1 - (v - yScale.value.lo) / (yScale.value.hi - yScale.value.lo)) * innerH.value
 
 // ---- X ticks: ~5 dates ----
-const fmtDate = (t) => new Date(t).toLocaleDateString('en-HK', { day: 'numeric', month: 'short' })
+const fmtDate = (ts) => new Date(ts).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' })
 const xTicks = computed(() => {
   const count = Math.min(width.value < 480 ? 3 : 5, n.value)
   return Array.from({ length: count }, (_, k) => Math.round((k / (count - 1 || 1)) * (n.value - 1)))
@@ -83,7 +87,7 @@ const annotations = computed(() => {
   const last = pts.length - 1
   const list = [{ i: last, v: pts[last].v, text: money(pts[last].v), anchor: 'end' }]
   if (lowIndex !== last && pts[lowIndex].v !== pts[last].v) {
-    list.push({ i: lowIndex, v: pts[lowIndex].v, text: 'Low ' + money(pts[lowIndex].v), anchor: lowIndex < n.value / 2 ? 'start' : 'middle' })
+    list.push({ i: lowIndex, v: pts[lowIndex].v, text: t('chart.low', { price: money(pts[lowIndex].v) }), anchor: lowIndex < n.value / 2 ? 'start' : 'middle' })
   }
   return list
 })
@@ -121,7 +125,7 @@ const tooltip = computed(() => {
       class="chart"
       role="img"
       tabindex="0"
-      aria-label="Price history chart. Use left and right arrow keys to read prices by day."
+      :aria-label="$t('chart.label')"
       @pointermove="onPointer"
       @pointerleave="active = null"
       @focus="active = n - 1"

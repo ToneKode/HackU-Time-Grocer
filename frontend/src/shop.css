@@ -466,3 +466,5 @@ button { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .menu-slide-enter-active, .menu-slide-leave-active, .menu-fade-enter-active, .menu-fade-leave-active { transition: none; }
 }
+.menu-back { font-weight: 600; }
+.menu-check { color: var(--primary); }
