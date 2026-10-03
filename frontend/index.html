@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<!-- Test counter only. Person 3 owns the real frontend. This page posts to /agent/intent and prints the ActionPlan. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Time Grocer counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=IBM+Plex+Mono:wght@400;500&family=Literata:opsz,wght@7..72,460;7..72,680&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1c1612;
+      --paper: #f3ecdf;
+      --paper-2: #e7dcc8;
+      --ticket: #241c16;
+      --ticket-ink: #f6ead7;
+      --amber: #e08a1e;
+      --stamp: #9c2f1a;
+      --line: #d5c8b0;
+      --ok: #2f6b45;
+      --muted: #6f6458;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(224, 138, 30, 0.16), transparent 28%),
+        repeating-linear-gradient(-12deg, transparent, transparent 18px, rgba(28, 22, 18, 0.035) 18px, rgba(28, 22, 18, 0.035) 19px),
+        var(--paper);
+      font-family: Literata, Georgia, serif;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      padding: 28px 7vw 18px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .mark {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 680;
+      font-size: clamp(2.4rem, 5vw, 4.4rem);
+      line-height: 0.85;
+      letter-spacing: -0.04em;
+      margin: 0;
+    }
+    .mark span { color: var(--stamp); }
+    .stall {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: right;
+      margin: 0;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      min-height: calc(100vh - 140px);
+    }
+    .slip, .ticket {
+      min-width: 0;
+      padding: 22px 7vw 32px;
+    }
+    .ticket {
+      background: var(--ticket);
+      color: var(--ticket-ink);
+      border-left: 1px dashed rgba(246, 234, 215, 0.35);
+    }
+    h2 {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+    }
+    .prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    button, textarea {
+      font: inherit;
+    }
+    .prompts button, form button, .copy {
+      border: 1px solid var(--ink);
+      background: transparent;
+      color: inherit;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .prompts button:hover, form button:hover, .copy:hover { background: var(--amber); color: var(--ink); }
+    button:disabled { opacity: 0.45; cursor: wait; }
+    .thread {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 220px;
+      margin-bottom: 16px;
+    }
+    .bubble {
+      max-width: 42rem;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 252, 246, 0.72);
+    }
+    .bubble.you { align-self: flex-end; background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .who {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 6px;
+    }
+    .line { margin: 0; }
+    .stamps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .stamps span {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.68rem;
+      border: 1px solid currentColor;
+      padding: 2px 6px;
+    }
+    form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+    form label { grid-column: 1 / -1; }
+    textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--ink);
+      background: #fffaf3;
+      color: var(--ink);
+      font-family: Literata, Georgia, serif;
+      font-size: 1.05rem;
+    }
+    textarea:focus, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .hint { color: var(--muted); font-size: 0.92rem; margin: 10px 0 0; }
+    .ticket-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .chip {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--amber);
+      color: var(--amber);
+      padding: 4px 8px;
+    }
+    .copy { border-color: var(--ticket-ink); color: var(--ticket-ink); }
+    pre {
+      margin: 14px 0 0;
+      max-width: 100%;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      min-height: 280px;
+    }
+    @media (max-width: 860px) {
+      header { padding: 20px 18px 14px; align-items: start; }
+      .stall { text-align: left; }
+      main { grid-template-columns: 1fr; }
+      .slip, .ticket { padding: 18px; }
+      .ticket { border-left: 0; border-top: 1px dashed rgba(246, 234, 215, 0.35); }
+      form { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 class="mark">Time<br>Grocer <span>01</span></h1>
+    <p class="stall">Stall counter<br>Chat the shelf. The ticket is the ActionPlan.</p>
+  </header>
+  <main>
+    <section class="slip" aria-label="Order chat">
+      <h2>Order slip</h2>
+      <div class="prompts">
+        <button type="button" data-say="cheap toilet paper">Cheap toilet paper</button>
+        <button type="button" data-say="everyday rice">Everyday rice</button>
+        <button type="button" data-say="best rated earbuds">Best rated earbuds</button>
+      </div>
+      <div class="thread" id="thread">
+        <article class="bubble">
+          <p class="who">Counter</p>
+          <p class="line">Ask for cheap, everyday, or best rated. The shelf has ten categories, three products each.</p>
+        </article>
+      </div>
+      <form id="order">
+        <label class="who" for="intent">What do you need</label>
+        <textarea id="intent" name="intent" rows="2" placeholder="cheap toilet paper" required></textarea>
+        <button type="submit" id="send">Send</button>
+      </form>
+      <p class="hint">Person 2’s cap check is skipped on this run. The hash chain still records the skip. Put the OpenRouter key in agent-brain/backend/.env.</p>
+    </section>
+    <section class="ticket" aria-label="Action plan JSON">
+      <div class="ticket-head">
+        <h2>ActionPlan</h2>
+        <span class="chip" id="chip">WAITING</span>
+        <button class="copy" type="button" id="copy">Copy JSON</button>
+      </div>
+      <pre id="ticket">The ticket prints after the first reply.</pre>
+    </section>
+  </main>
+  <script>
+    const form = document.querySelector("#order");
+    const intentBox = document.querySelector("#intent");
+    const thread = document.querySelector("#thread");
+    const ticket = document.querySelector("#ticket");
+    const chip = document.querySelector("#chip");
+    const send = document.querySelector("#send");
+    const copy = document.querySelector("#copy");
+    const prompts = document.querySelectorAll("[data-say]");
+    let latest = "";
+
+    const labels = {
+      cheap: "Cheap",
+      highest_usage: "Highest usage",
+      best_rating: "Best rating",
+    };
+
+    function bubble(who, text, stamps) {
+      const article = document.createElement("article");
+      article.className = "bubble" + (who === "You" ? " you" : "");
+      const name = document.createElement("p");
+      name.className = "who";
+      name.textContent = who;
+      const line = document.createElement("p");
+      line.className = "line";
+      line.textContent = text;
+      article.append(name, line);
+      if (stamps && stamps.length) {
+        const row = document.createElement("div");
+        row.className = "stamps";
+        for (const stamp of stamps) {
+          const mark = document.createElement("span");
+          mark.textContent = stamp;
+          row.append(mark);
+        }
+        article.append(row);
+      }
+      thread.append(article);
+      article.scrollIntoView({ block: "nearest" });
+    }
+
+    function setBusy(busy) {
+      send.disabled = busy;
+      prompts.forEach((button) => { button.disabled = busy; });
+      if (busy) chip.textContent = "READING";
+    }
+
+    async function ask(intent) {
+      bubble("You", intent);
+      setBusy(true);
+      try {
+        const response = await fetch("/agent/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent, monthly_spent: 0 }),
+        });
+        const plan = await response.json();
+        latest = JSON.stringify(plan, null, 2);
+        ticket.textContent = latest;
+        chip.textContent = plan.status || "ERROR";
+        const product = plan.product;
+        const sell = product ? (labels[product.sell_point] || product.sell_point) : "";
+        const landed = plan.quote ? plan.quote.total_landed_cost : null;
+        const summary = product
+          ? product.name + " · " + sell + (landed == null ? "" : " · HK$" + landed)
+          : ((plan.audit_log && plan.audit_log.length) ? plan.audit_log[plan.audit_log.length - 1].reason : "No plan");
+        const stamps = (plan.audit_log || []).map((entry) => entry.event + " " + entry.status);
+        bubble("Agent", summary, stamps);
+      } catch (error) {
+        chip.textContent = "ERROR";
+        latest = String(error);
+        ticket.textContent = latest;
+        bubble("Agent", "The counter could not reach the agent.");
+      } finally {
+        setBusy(false);
+        intentBox.focus();
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const intent = intentBox.value.trim();
+      if (!intent) return;
+      intentBox.value = "";
+      ask(intent);
+    });
+
+    prompts.forEach((button) => {
+      button.addEventListener("click", () => ask(button.dataset.say));
+    });
+
+    copy.addEventListener("click", async () => {
+      if (!latest) return;
+      try {
+        await navigator.clipboard.writeText(latest);
+        copy.textContent = "Copied";
+      } catch (error) {
+        copy.textContent = "Copy failed";
+      }
+      setTimeout(() => { copy.textContent = "Copy JSON"; }, 1200);
+    });
+  </script>
+</body>
+</html>
