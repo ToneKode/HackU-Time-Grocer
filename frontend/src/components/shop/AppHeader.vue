@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { cartCount, favouriteCount } from '../../stores/shop.js'
 import {
-  Home01Icon, GridViewIcon, ShoppingCart01Icon, AiMagicIcon, Search01Icon, Location01Icon, ShoppingBasket01Icon,
+  Home01Icon, GridViewIcon, ShoppingCart01Icon, AiMagicIcon, Search01Icon, ShoppingBasket01Icon,
   Menu01Icon, FavouriteIcon,
 } from '@hugeicons/core-free-icons'
 import Icon from './Icon.vue'
@@ -63,7 +63,6 @@ const nav = [
         </RouterLink>
       </nav>
 
-      <span class="location"><Icon :icon="Location01Icon" :size="16" /> {{ $t('nav.location') }}</span>
 
       <button
         ref="menuButton"

@@ -5,7 +5,6 @@ export default {
     cart: 'Cart',
     favourites: 'Favourites',
     agent: 'Agent',
-    location: 'Hong Kong',
     searchPlaceholder: 'Search for low prices…',
     searchLabel: 'Search products',
     openMenu: 'Open menu',

@@ -6,7 +6,6 @@ export default {
     cart: '購物車',
     favourites: '我的最愛',
     agent: '代理',
-    location: '香港',
     searchPlaceholder: '搜尋最低價…',
     searchLabel: '搜尋貨品',
     openMenu: '打開選單',
