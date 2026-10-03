@@ -1,10 +1,10 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { cartCount } from '../../stores/shop.js'
+import { cartCount, favouriteCount } from '../../stores/shop.js'
 import {
   Home01Icon, GridViewIcon, ShoppingCart01Icon, AiMagicIcon, Search01Icon, Location01Icon, ShoppingBasket01Icon,
-  Menu01Icon,
+  Menu01Icon, FavouriteIcon,
 } from '@hugeicons/core-free-icons'
 import Icon from './Icon.vue'
 import SideMenu from './SideMenu.vue'
@@ -34,7 +34,8 @@ function search() {
 const nav = [
   { to: '/', label: 'nav.home', icon: Home01Icon },
   { to: '/catalog', label: 'nav.catalog', icon: GridViewIcon },
-  { to: '/cart', label: 'nav.cart', icon: ShoppingCart01Icon, badge: true },
+  { to: '/favourites', label: 'nav.favourites', icon: FavouriteIcon, badge: favouriteCount },
+  { to: '/cart', label: 'nav.cart', icon: ShoppingCart01Icon, badge: cartCount },
   { to: '/agent', label: 'nav.agent', icon: AiMagicIcon },
 ]
 </script>
@@ -56,7 +57,7 @@ const nav = [
         <RouterLink v-for="item in nav" :key="item.to" :to="item.to" class="nav-link">
           <span class="nav-icon">
             <Icon :icon="item.icon" />
-            <span v-if="item.badge && cartCount" class="nav-badge">{{ cartCount }}</span>
+            <span v-if="item.badge?.value" class="nav-badge">{{ item.badge.value }}</span>
           </span>
           <span class="nav-label">{{ $t(item.label) }}</span>
         </RouterLink>

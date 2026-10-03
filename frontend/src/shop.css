@@ -480,3 +480,26 @@ button { font: inherit; color: inherit; }
   --tint-personal: #2a2130; --tint-baby: #2f2026; --tint-health: #1c2a25;
 }
 :root[data-theme="dark"] .hero-art span { box-shadow: none; }
+
+/* ---------- Favourites ---------- */
+.fav-title { display: flex; align-items: center; gap: 10px; }
+.fav-title .muted { font-weight: 400; }
+.fav-title-icon { color: var(--heart); }
+.fav-deals { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.fav-deals-title { display: flex; align-items: center; gap: 8px; color: var(--ok); }
+.fav-deal-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.fav-deal-list li { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.fav-deal-list li + li { border-top: 1px solid var(--line); }
+.fav-deal-emoji { width: 44px; height: 44px; font-size: 1.6rem; }
+.fav-deal-name { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: 600; font-size: 0.92rem; }
+.fav-deal-name:hover { color: var(--primary); }
+.fav-deal-price { font-size: 1.1rem; }
+.fav-toolbar { flex-wrap: wrap; }
+.fav-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fav-note { font-size: 0.85rem; color: var(--ok); display: inline-flex; gap: 8px; align-items: center; }
+.btn-soft:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 860px) {
+  .site-header .nav { gap: 0; }
+  .site-header .nav-link { padding: 7px; }
+  .menu-btn { width: 36px; height: 36px; }
+}

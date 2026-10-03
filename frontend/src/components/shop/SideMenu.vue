@@ -11,7 +11,8 @@ import {
 } from '@hugeicons/core-free-icons'
 import { useI18n } from 'vue-i18n'
 import { LOCALES, setLocale } from '../../i18n/index.js'
-import { favourites } from '../../stores/shop.js'
+import { favouriteCount } from '../../stores/shop.js'
+import { useRouter } from 'vue-router'
 import { THEMES, themePref, resolvedTheme, setTheme } from '../../lib/theme.js'
 import Icon from './Icon.vue'
 
@@ -41,13 +42,13 @@ function chooseTheme(name) {
   setTheme(name)
   showView('main')
 }
-const favouriteCount = computed(() => Object.keys(favourites.ids).length)
+const router = useRouter()
 
-// TODO: wire up auth, favourites page and info pages.
+// TODO: wire up auth and info pages.
 const settings = computed(() => [
   { id: 'language', icon: TranslateIcon, label: t('menu.language'), value: currentLanguage.value, action: () => showView('language') },
   { id: 'theme', icon: resolvedTheme.value === 'dark' ? Moon02Icon : Sun03Icon, label: t('menu.theme'), value: themeLabel(themePref.value), action: () => showView('theme') },
-  { id: 'favourites', icon: FavouriteIcon, label: t('menu.favourites'), count: favouriteCount.value },
+  { id: 'favourites', icon: FavouriteIcon, label: t('menu.favourites'), count: favouriteCount.value, action: () => router.push('/favourites') },
 ])
 const pages = computed(() => [
   { id: 'about', icon: InformationCircleIcon, label: t('menu.about') },

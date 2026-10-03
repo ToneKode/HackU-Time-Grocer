@@ -49,11 +49,17 @@ export const cartLines = computed(() =>
 
 export const cartCount = computed(() => cartLines.value.reduce((sum, line) => sum + line.qty, 0))
 
-// favourites.ids: { [productId]: true }
+// favourites.ids: { [productId]: savedAt (ms) }  — older saves stored `true`, treated as 0.
 export const favourites = reactive({ ids: load('tg-favourites', {}) })
 persist('tg-favourites', () => favourites.ids)
 
 export function toggleFavourite(id) {
   if (favourites.ids[id]) delete favourites.ids[id]
-  else favourites.ids[id] = true
+  else favourites.ids[id] = Date.now()
 }
+
+export function clearFavourites() {
+  for (const id of Object.keys(favourites.ids)) delete favourites.ids[id]
+}
+
+export const favouriteCount = computed(() => Object.keys(favourites.ids).filter((id) => productById[id]).length)

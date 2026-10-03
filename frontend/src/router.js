@@ -7,6 +7,7 @@ export const router = createRouter({
     { path: '/', name: 'home', component: HomeView },
     { path: '/catalog', name: 'catalog', component: () => import('./views/CatalogView.vue') },
     { path: '/product/:id', name: 'product', component: () => import('./views/ProductView.vue') },
+    { path: '/favourites', name: 'favourites', component: () => import('./views/FavouritesView.vue') },
     { path: '/cart', name: 'cart', component: () => import('./views/CartView.vue') },
     { path: '/agent', name: 'agent', component: () => import('./views/AgentView.vue') },
   ],
