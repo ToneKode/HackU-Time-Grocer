@@ -92,16 +92,19 @@ def test_each_merchant_is_charged_with_its_own_rail() -> None:
         assert row["logistics"]["status"] == "confirmed"
         assert row["logistics"]["tracking_id"].startswith("TRK-")
         assert row["order_id"].startswith("ORD-")
-    assert result["cash_paid"] == pytest.approx(89.9 + 769.0 + 80.0)
+    assert result["charged"] == pytest.approx(89.9 + 769.0 + 80.0)
+    assert result["payment_route"] == "payme"
+    assert result["currency"] == "HKD"
+    assert result["error"] is None
 
 
 def test_idempotency_returns_the_same_orders() -> None:
     clear_settlements()
-    items = [{"merchant": "HKTVmall", "price": 50, "qty": 1, "name": "Snacks"}]
+    items = [{"merchant": "Taste", "price": 50, "qty": 1, "name": "Snacks"}]
     first = asyncio.run(settle_payment(items, idempotency_key="list-1", delay_s=0))
     second = asyncio.run(settle_payment(items, idempotency_key="list-1", delay_s=0))
     assert first == second
-    assert first["settlements"][0]["logistics"]["carrier"] == "HKTVmall Delivery"
+    assert first["settlements"][0]["logistics"]["carrier"] == "Taste Home Delivery"
 
 
 def test_same_merchant_lines_share_one_charge() -> None:

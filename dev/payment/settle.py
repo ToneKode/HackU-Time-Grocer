@@ -26,7 +26,6 @@ from dev.payment.rails import LABELS, choose_rail, explain
 DEFAULT_DELAY_S = 0.5
 
 CARRIERS = {
-    "hktvmall": "HKTVmall Delivery",
     "parknshop": "PARKnSHOP Home Delivery",
     "taste": "Taste Home Delivery",
     "watsons": "Watsons Express",
@@ -113,25 +112,87 @@ async def _charge(
     }
 
 
+def _as_quote(payload: dict | list) -> tuple[list[dict], Decimal]:
+    """Read a person 1 CartQuote, an `{items}` list, or bare CartLine rows.
+
+    Shipping and tax from a CartQuote are part of the landed amount person 1
+    pays. They are added to the largest merchant basket.
+    """
+    if isinstance(payload, list):
+        return payload, money(0)
+    if "quote" in payload and isinstance(payload["quote"], dict):
+        return _as_quote(payload["quote"])
+    rows = payload.get("line_items", payload.get("items"))
+    if not isinstance(rows, list):
+        raise ValueError("payment list needs line_items or items")
+    fee = money(payload.get("shipping_fee") or 0) + money(payload.get("tax") or 0)
+    return rows, fee
+
+
+def _pay_result(
+    *,
+    success: bool,
+    order_id: str | None,
+    charged: Decimal | None,
+    payment_route: str | None,
+    ts: str | None,
+    error: str | None,
+    reward_hkd: Decimal,
+    settlements: list[dict],
+) -> dict:
+    """Person 1 PayResult fields, plus the per-merchant mock logistics.
+
+    `payment_route` is the chosen rail (`yuu`, `hase_hsbc`, `alipay_ant`,
+    `payme`). Person 1's older card enum (`mastercard|unionpay`) described
+    the mock mall checkout, which this step no longer calls.
+    `reward_points_earned` is omitted: `frontend/contract.json` drops reward
+    points, and its `ignored` list includes them.
+    """
+    return {
+        "success": success,
+        "order_id": order_id,
+        "charged": None if charged is None else as_float(charged),
+        "currency": None if not success else "HKD",
+        "payment_route": payment_route,
+        "ts": ts,
+        "error": error,
+        "reward_hkd": as_float(reward_hkd),
+        "selection_rule": "minimum cash paid, then maximum reward HKD value",
+        "settlements": settlements,
+    }
+
+
 async def settle_payment(
-    items: list[dict],
+    payload: dict | list,
     *,
     idempotency_key: str | None = None,
     delay_s: float = DEFAULT_DELAY_S,
 ) -> dict:
+    if isinstance(payload, dict) and not idempotency_key:
+        idempotency_key = payload.get("idempotency_key")
     if idempotency_key and idempotency_key in _settlements:
         return deepcopy(_settlements[idempotency_key])
 
-    lines = [line_from_contract(item) for item in items]
+    rows, fee = _as_quote(payload)
+    lines = [line_from_contract(item) for item in rows]
     if not lines:
         raise ValueError("shopping list is empty")
+
+    groups = _group(lines)
+    primary = max(
+        groups,
+        key=lambda merchant: sum((line.amount for line in groups[merchant]), Decimal("0")),
+    )
 
     settlements = []
     cash_total = money(0)
     reward_total = money(0)
+    primary_receipt: dict | None = None
 
-    for merchant, group in _group(lines).items():
+    for merchant, group in groups.items():
         subtotal = money(sum((line.amount for line in group), Decimal("0")))
+        if merchant == primary:
+            subtotal = money(subtotal + fee)
         best, quotes = choose_rail(subtotal)
         receipt = await _charge(
             merchant=merchant,
@@ -140,18 +201,21 @@ async def settle_payment(
             delay_s=delay_s,
         )
         if not receipt["success"]:
-            body = {
-                "success": False,
-                "currency": "HKD",
-                "error": receipt.get("error") or "merchant_declined",
-                "cash_paid": as_float(cash_total),
-                "reward_hkd": as_float(reward_total),
-                "settlements": settlements,
-            }
-            return body
+            return _pay_result(
+                success=False,
+                order_id=None,
+                charged=None,
+                payment_route=None,
+                ts=None,
+                error=receipt.get("error") or "merchant_declined",
+                reward_hkd=reward_total,
+                settlements=settlements,
+            )
 
         cash_total = money(cash_total + best.cash_paid)
         reward_total = money(reward_total + best.reward_hkd)
+        if merchant == primary:
+            primary_receipt = receipt
         settlements.append(
             {
                 "merchant": merchant,
@@ -165,6 +229,7 @@ async def settle_payment(
                     for line in group
                 ],
                 "subtotal": as_float(subtotal),
+                "shipping_and_tax": as_float(fee) if merchant == primary else 0.0,
                 "method": best.method,
                 "method_label": LABELS[best.method],
                 "cash_paid": as_float(best.cash_paid),
@@ -177,15 +242,20 @@ async def settle_payment(
             }
         )
 
-    body = {
-        "success": True,
-        "currency": "HKD",
-        "selection_rule": "minimum cash paid, then maximum reward HKD value",
-        "cash_paid": as_float(cash_total),
-        "reward_hkd": as_float(reward_total),
-        "settlements": settlements,
-        "error": None,
-    }
+    if primary_receipt is None:
+        raise ValueError("shopping list is empty")
+    body = _pay_result(
+        success=True,
+        order_id=primary_receipt["order_id"],
+        charged=cash_total,
+        payment_route=next(
+            row["method"] for row in settlements if row["order_id"] == primary_receipt["order_id"]
+        ),
+        ts=primary_receipt["ts"],
+        error=None,
+        reward_hkd=reward_total,
+        settlements=settlements,
+    )
     if idempotency_key:
         _settlements[idempotency_key] = deepcopy(body)
     return body
