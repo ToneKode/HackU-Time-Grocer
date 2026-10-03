@@ -130,7 +130,7 @@
       "whitelist": ["Watsons", "HKTVmall", "PARKnSHOP", "Japan Home Centre"],
       "blacklist": ["DarkWebMart"]
     },
-    "category_blacklist": [],
+    "category_blacklist": ["Food", "Alcohol", "Electronics", "Health"],
     "categories": ["Household", "Food", "Health", "Electronics"]
   },
   "audit": {
