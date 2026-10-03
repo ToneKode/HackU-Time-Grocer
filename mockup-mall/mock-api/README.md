@@ -16,6 +16,14 @@ uvicorn main:app --port 8000 --reload
 
 Server listens on `http://localhost:8000`.
 
+## Tests
+
+```bash
+pytest -q
+```
+
+Covers health, product filters, cart shipping/TLC rules, payment success/decline, idempotency, and the ~500ms `/pay` delay.
+
 ## Endpoints
 
 | Method | Path | Description |
