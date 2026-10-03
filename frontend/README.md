@@ -10,7 +10,7 @@ The agent spec is [`contract.json`](contract.json).
 | `/` | Hero, category shortcuts, "Mega deals" with store filter |
 | `/catalog` | Category sidebar, store chips, sorting, search results (`?q=`, `?category=`) |
 | `/cart` | **Optimal mix** (each item at its cheapest store) and **One store** comparison; checkout button is a placeholder for the agent |
-| `/agent` | Agent checkout dashboard: approval timer, audit trace (mock or live API) |
+| `/agent` | Chat with the shopping agent: replies carry the order, the approval card (10-minute timer) and the steps; budget, rules and settings in a sidebar (drawer on phones) |
 
 ## Run
 
@@ -47,11 +47,11 @@ VITE_POLICY_URL=http://localhost:8001
 | `src/content/` | About page and legal documents (Terms, Return Policy, Privacy Policy) in all three languages. **Drafts: have a Hong Kong solicitor review before launch.** Update `LEGAL_UPDATED` in `index.js` when you change them |
 | `src/i18n/` | Translations: `en.js`, `zh-Hant.js` (繁體), `zh-Hans.js` (简体) for UI text; `products.js` for product and store names |
 | `src/components/shop/` | Header, product card, store chips, qty stepper |
-| `src/views/AgentView.vue` | Agent page state: sends the intent, polls the escalation every second, handles Approve/Refuse |
+| `src/views/AgentView.vue` | Agent chat: messages, sends the intent, polls the escalation every second, handles Approve/Refuse |
 | `src/lib/api.js` | The only four calls the frontend makes (`contract.json` → `calls`) |
 | `src/lib/mock.js` | Fake agent + policy API for local work |
 | `src/lib/hash.js` | Checks the audit log's sha256 hash chain in the browser |
-| `src/components/` | Agent dashboard cards |
+| `src/components/` | Cards shown inside the agent chat and its sidebar |
 
 ## Agent demo scenarios (`/agent`)
 

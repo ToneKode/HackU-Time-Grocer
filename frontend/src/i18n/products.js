@@ -2,6 +2,7 @@
 const zh = {
   SKU001: { name: ['Tempo 超柔軟衛生紙 27卷', 'Tempo 超柔软卫生纸 27卷'], size: ['27卷', '27卷'] },
   SKU002: { name: ['唯潔雅 衛生紙 10卷', '唯洁雅 卫生纸 10卷'], size: ['10卷', '10卷'] },
+  SKU003: { name: ['舒潔 衛生紙 30卷 大包裝', '舒洁 卫生纸 30卷 大包装'], size: ['30卷', '30卷'] },
   SKU004: { name: ['滴露 多用途表面清潔劑 1L', '滴露 多用途表面清洁剂 1L'] },
   TG001: { name: ['超細纖維清潔布 10件', '超细纤维清洁布 10件'], size: ['10件', '10件'] },
   TG002: { name: ['可疊加收納箱套裝 3件', '可叠加收纳箱套装 3件'], size: ['3件', '3件'] },
@@ -34,6 +35,17 @@ export const storeNamesZh = {
   HKTVmall: ['HKTVmall', 'HKTVmall'],
   PARKnSHOP: ['百佳', '百佳'],
   'Japan Home Centre': ['日本城', '日本城'],
+}
+
+// Fixed policy reasons from the team contract (English) -> [Traditional, Simplified].
+export const policyReasonsZh = {
+  'Under HK$500 cap': ['低於 HK$500 上限', '低于 HK$500 上限'],
+  'Over HK$500 per-transaction cap': ['超過每單 HK$500 上限', '超过每单 HK$500 上限'],
+  'Over HK$800 bulk ceiling': ['超過 HK$800 最高金額', '超过 HK$800 最高金额'],
+  'Over HK$2000 monthly cap': ['超過每月 HK$2,000 上限', '超过每月 HK$2,000 上限'],
+  'Merchant not whitelisted': ['商店不在允許名單內', '商店不在允许名单内'],
+  'Merchant blacklisted': ['商店已被封鎖', '商店已被屏蔽'],
+  'Category blacklisted': ['此類別已被封鎖', '此类别已被屏蔽'],
 }
 
 export default zh

@@ -4,7 +4,7 @@ import { createI18n } from 'vue-i18n'
 import en from './en.js'
 import zhHant from './zh-Hant.js'
 import zhHans from './zh-Hans.js'
-import productsZh, { storeNamesZh } from './products.js'
+import productsZh, { storeNamesZh, policyReasonsZh } from './products.js'
 
 export const LOCALES = [
   { code: 'en', label: 'English', date: 'en-HK' },
@@ -63,6 +63,11 @@ export function productSize(product) {
 export function storeName(name) {
   const i = zhIndex()
   return (i >= 0 && storeNamesZh[name]?.[i]) || name
+}
+
+export function policyReason(text) {
+  const i = zhIndex()
+  return (i >= 0 && policyReasonsZh[text]?.[i]) || text
 }
 
 export function categoryLabel(id) {

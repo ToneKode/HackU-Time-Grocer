@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import contract from '../../contract.json'
 import { money, clock } from '../lib/format.js'
+import { storeName, policyReason } from '../i18n/index.js'
 
 const props = defineProps({
   escalation: { type: Object, required: true },
@@ -10,7 +11,6 @@ const props = defineProps({
 const emit = defineEmits(['decide'])
 
 const screen = contract.screens.approval
-const labels = contract.labels.escalation_status
 const canDecide = computed(
   () => props.escalation.status === 'PENDING' && props.escalation.remaining_seconds > 0 && !props.busy,
 )
@@ -20,8 +20,8 @@ const progress = computed(() => (props.escalation.remaining_seconds / props.esca
 <template>
   <section class="card approval" :class="{ closed: escalation.status !== 'PENDING' }">
     <div class="approval-head">
-      <h2>Approval needed</h2>
-      <span class="pill">{{ labels[escalation.status] }}</span>
+      <h2>{{ $t('agentCards.approvalTitle') }}</h2>
+      <span class="pill">{{ $t(`agentCards.escalation.${escalation.status}`) }}</span>
     </div>
 
     <div class="timer" :class="{ low: escalation.remaining_seconds <= 60 }">
@@ -30,9 +30,9 @@ const progress = computed(() => (props.escalation.remaining_seconds / props.esca
     <div class="timer-bar"><div :style="{ width: progress + '%' }" /></div>
 
     <dl class="rows">
-      <dt>Amount</dt><dd class="total">{{ money(escalation.amount) }}</dd>
-      <dt>Merchant</dt><dd>{{ escalation.merchant }}</dd>
-      <dt>Reason</dt><dd>{{ escalation.reason }}</dd>
+      <dt>{{ $t('agentCards.amount') }}</dt><dd class="total">{{ money(escalation.amount) }}</dd>
+      <dt>{{ $t('agentCards.merchant') }}</dt><dd>{{ storeName(escalation.merchant) }}</dd>
+      <dt>{{ $t('agentCards.reason') }}</dt><dd>{{ policyReason(escalation.reason) }}</dd>
     </dl>
 
     <div class="actions">
@@ -44,7 +44,7 @@ const progress = computed(() => (props.escalation.remaining_seconds / props.esca
         :disabled="!canDecide"
         @click="emit('decide', button.decision)"
       >
-        {{ button.label }}
+        {{ button.decision === 'APPROVE' ? $t('agentCards.approve') : $t('agentCards.refuse') }}
       </button>
     </div>
   </section>

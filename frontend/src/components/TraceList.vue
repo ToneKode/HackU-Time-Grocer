@@ -1,11 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import contract from '../../contract.json'
 import { verifyChain } from '../lib/hash.js'
 import { shortHash } from '../lib/format.js'
 
 const props = defineProps({ entries: { type: Array, default: () => [] } })
-const eventLabels = contract.labels.event
 
 const sorted = computed(() => [...props.entries].sort((a, b) => a.index - b.index))
 
@@ -26,16 +24,16 @@ const verified = computed(
 <template>
   <section class="card">
     <div class="approval-head">
-      <h2>Agent trace</h2>
+      <h2>{{ $t('agentCards.traceTitle') }}</h2>
       <span v-if="entries.length" class="pill" :class="verified ? 'pill-ok' : 'pill-bad'">
-        {{ verified ? 'Hash chain verified' : 'Hash chain broken' }}
+        {{ verified ? $t('agentCards.verified') : $t('agentCards.broken') }}
       </span>
     </div>
 
     <ol class="trace">
       <li v-for="(entry, i) in sorted" :key="entry.index" :class="{ broken: checks[i] === false }">
         <div class="trace-top">
-          <span class="trace-event">{{ eventLabels[entry.event] ?? entry.event }}</span>
+          <span class="trace-event">{{ $te(`agentCards.events.${entry.event}`) ? $t(`agentCards.events.${entry.event}`) : entry.event }}</span>
           <span class="pill small">{{ entry.status }}</span>
           <span class="muted mono">{{ entry.ts }}</span>
         </div>

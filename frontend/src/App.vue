@@ -7,7 +7,9 @@ const route = useRoute()
 </script>
 
 <template>
-  <AppHeader v-if="!route.meta.hideHeader" />
-  <RouterView />
-  <SiteFooter />
+  <div class="app" :class="{ 'app-full': route.meta.fullHeight }">
+    <AppHeader v-if="!route.meta.hideHeader" />
+    <RouterView />
+    <SiteFooter v-if="!route.meta.fullHeight" />
+  </div>
 </template>

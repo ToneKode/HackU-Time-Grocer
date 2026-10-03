@@ -83,7 +83,7 @@ h2 { font-size: 1rem; margin-bottom: 12px; }
   border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer;
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
 .btn.danger { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
 .btn.ghost { background: transparent; }
 .btn.small { padding: 6px 10px; font-size: 0.85rem; font-weight: 500; }

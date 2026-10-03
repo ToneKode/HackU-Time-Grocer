@@ -15,17 +15,17 @@ const pct = (n) => Math.min(100, Math.max(0, (n / props.budget.cap) * 100)) + '%
 
 <template>
   <section class="card">
-    <h2>Monthly budget</h2>
-    <div class="budget-big">{{ money(budget.remaining) }} <span class="muted">left</span></div>
+    <h2>{{ $t('agentCards.budgetTitle') }}</h2>
+    <div class="budget-big">{{ money(budget.remaining) }} <span class="muted">{{ $t('agentCards.left') }}</span></div>
     <div class="bar">
       <div class="bar-spent" :style="{ width: pct(budget.spent) }" />
       <div class="bar-order" :style="{ width: pct(thisOrder) }" />
     </div>
     <dl class="rows">
-      <dt>Cap</dt><dd>{{ money(budget.cap) }}</dd>
-      <dt><i class="dot dot-spent" />Spent</dt><dd>{{ money(budget.spent) }}</dd>
+      <dt>{{ $t('agentCards.cap') }}</dt><dd>{{ money(budget.cap) }}</dd>
+      <dt><i class="dot dot-spent" />{{ $t('agentCards.spent') }}</dt><dd>{{ money(budget.spent) }}</dd>
       <template v-if="thisOrder">
-        <dt><i class="dot dot-order" />This order</dt><dd>{{ money(thisOrder) }}</dd>
+        <dt><i class="dot dot-order" />{{ $t('agentCards.thisOrder') }}</dt><dd>{{ money(thisOrder) }}</dd>
       </template>
     </dl>
   </section>

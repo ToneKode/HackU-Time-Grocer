@@ -81,7 +81,7 @@ export async function sendIntent({ intent, monthly_spent = 0, escalation_id }) {
   await wait(700)
   if (escalation_id) return resume(escalation_id)
 
-  const example = /bulk/i.test(intent) ? escalation_bulk : happy_path
+  const example = /bulk|大包|批量/i.test(intent) ? escalation_bulk : happy_path
   const { product, quote, goal } = structuredClone(example.response)
   const policy = checkPolicy(quote.total_landed_cost, Number(monthly_spent))
   const plan = { intent, status: 'READY', goal: { ...goal, intent }, product, quote, policy, escalation: null, payment: null, audit_log: [] }
