@@ -2,7 +2,7 @@
 
 GET / is the chat page. POST /agent/intent runs the LangGraph.
 The reason node calls OpenRouter. The mall is fake_mall/*.json until
-MOCK_API_BASE_URL is set. Person 2's policy check is skipped and logged.
+MOCK_API_BASE_URL is set. Policy calls go to port 8001 and fall back to the same caps.
 
     py -3.13 server.py
 """

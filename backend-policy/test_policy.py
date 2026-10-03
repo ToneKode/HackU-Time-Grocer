@@ -41,12 +41,12 @@ def test_merchant_rules(c):
 def test_category_rules(c):
     for cat in ("Food", "Health", "Electronics", "Alcohol"):
         r = policy(c, 50, category=cat)
-        assert r["status"] == "HALT" and r["reason"] == "Category blacklisted"
+        assert r["status"] == "PASS" and r["reason"] == "Under HK$500 cap"
 
 
 def test_check_order_merchant_before_category_before_monthly(c):
     assert policy(c, 900, merchant="DarkWebMart", category="Food", spent=1990)["rule"] == "merchant_blacklisted"
-    assert policy(c, 900, category="Food", spent=1990)["rule"] == "category_blacklisted"
+    assert policy(c, 900, category="Food", spent=1990)["rule"] == "monthly_cap"
     assert policy(c, 900, spent=1990)["rule"] == "monthly_cap"      # monthly beats bulk ceiling
 
 

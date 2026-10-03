@@ -42,31 +42,38 @@ class FileMall:
             raise LookupError(f"Unknown SKU: {sku}") from exc
 
     def cart(self, sku: str, qty: int) -> dict:
-        item = self.product(sku)
-        unit = money(item["price"])
-        line_total = money(unit * qty)
+        return self.cart_lines([{"sku": sku, "qty": qty}])
+
+    def cart_lines(self, items: list[dict]) -> dict:
+        line_items = []
+        for item in items:
+            product = self.product(item["sku"])
+            unit = money(product["price"])
+            qty = int(item["qty"])
+            line_items.append(
+                {
+                    "sku": product["id"],
+                    "name": product["name"],
+                    "merchant": product["merchant"],
+                    "category": product["category"],
+                    "unit_price": unit,
+                    "qty": qty,
+                    "line_total": money(unit * qty),
+                }
+            )
+        subtotal = money(sum(line["line_total"] for line in line_items))
         shipping_fee = (
             0.0
-            if line_total >= self.rules["free_shipping_threshold"]
+            if subtotal >= self.rules["free_shipping_threshold"]
             else money(self.rules["shipping_fee_below_threshold"])
         )
         tax = money(self.rules["tax"])
         return {
-            "line_items": [
-                {
-                    "sku": item["id"],
-                    "name": item["name"],
-                    "merchant": item["merchant"],
-                    "category": item["category"],
-                    "unit_price": unit,
-                    "qty": qty,
-                    "line_total": line_total,
-                }
-            ],
-            "subtotal": line_total,
+            "line_items": line_items,
+            "subtotal": subtotal,
             "shipping_fee": shipping_fee,
             "tax": tax,
-            "total_landed_cost": money(line_total + shipping_fee + tax),
+            "total_landed_cost": money(subtotal + shipping_fee + tax),
             "currency": self.rules["currency"],
             "free_shipping_threshold": self.rules["free_shipping_threshold"],
         }

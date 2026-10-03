@@ -154,6 +154,33 @@
       padding: 4px 8px;
     }
     .copy { border-color: var(--ticket-ink); color: var(--ticket-ink); }
+    .react {
+      list-style: none;
+      margin: 0 0 18px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .react-step {
+      border-top: 1px solid rgba(246, 234, 215, 0.28);
+      padding-top: 10px;
+    }
+    .react-step p { margin: 0 0 4px; }
+    .react-k {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+    .react-k span {
+      margin-left: 8px;
+      color: var(--ticket-ink);
+      border: 1px solid rgba(246, 234, 215, 0.4);
+      padding: 0 5px;
+    }
+    .react-body { font-size: 0.95rem; }
     pre {
       margin: 14px 0 0;
       max-width: 100%;
@@ -162,7 +189,7 @@
       font-family: "IBM Plex Mono", ui-monospace, monospace;
       font-size: 0.78rem;
       line-height: 1.45;
-      min-height: 280px;
+      min-height: 180px;
     }
     @media (max-width: 860px) {
       header { padding: 20px 18px 14px; align-items: start; }
@@ -189,6 +216,8 @@
         <button type="button" data-say="cheap toilet paper">Cheap toilet paper</button>
         <button type="button" data-say="everyday rice">Everyday rice</button>
         <button type="button" data-say="best rated earbuds">Best rated earbuds</button>
+        <button type="button" data-say="one cheap item from every category">One from every category</button>
+        <button type="button" data-say="one cheap item from every category, same merchant">Same merchant</button>
       </div>
       <div class="thread" id="thread">
         <article class="bubble">
@@ -201,7 +230,7 @@
         <textarea id="intent" name="intent" rows="2" placeholder="cheap toilet paper" required></textarea>
         <button type="submit" id="send">Send</button>
       </form>
-      <p class="hint">Person 2’s cap check is skipped on this run. The hash chain still records the skip. Put the OpenRouter key in agent-brain/backend/.env.</p>
+      <p class="hint">Policy runs on port 8001. No category is blacklisted. A vague line such as "food for 7 days, budget 700" becomes a guess of several ingredients, or a follow-up if the sentence names nothing. "Same merchant" locks the basket to the best shop. Put the OpenRouter key in agent-brain/backend/.env.</p>
     </section>
     <section class="ticket" aria-label="Action plan JSON">
       <div class="ticket-head">
@@ -209,6 +238,10 @@
         <span class="chip" id="chip">WAITING</span>
         <button class="copy" type="button" id="copy">Copy JSON</button>
       </div>
+      <h2>ReAct</h2>
+      <ol class="react" id="react">
+        <li class="react-step"><p class="react-body">The model trace prints with the ticket. Thought, then action, then observation.</p></li>
+      </ol>
       <pre id="ticket">The ticket prints after the first reply.</pre>
     </section>
   </main>
@@ -217,6 +250,7 @@
     const intentBox = document.querySelector("#intent");
     const thread = document.querySelector("#thread");
     const ticket = document.querySelector("#ticket");
+    const reactList = document.querySelector("#react");
     const chip = document.querySelector("#chip");
     const send = document.querySelector("#send");
     const copy = document.querySelector("#copy");
@@ -253,6 +287,45 @@
       article.scrollIntoView({ block: "nearest" });
     }
 
+    function showReact(steps) {
+      reactList.replaceChildren();
+      if (!steps || !steps.length) {
+        const empty = document.createElement("li");
+        empty.className = "react-step";
+        const note = document.createElement("p");
+        note.className = "react-body";
+        note.textContent = "No ReAct trace on this reply.";
+        empty.append(note);
+        reactList.append(empty);
+        return;
+      }
+      for (const step of steps) {
+        const item = document.createElement("li");
+        item.className = "react-step";
+        item.append(
+          labeled("Thought", step.source || "agent", step.thought || ""),
+          labeled("Action", "", step.action || ""),
+          labeled("Observation", "", step.observation || ""),
+        );
+        reactList.append(item);
+      }
+    }
+
+    function labeled(kind, source, text) {
+      const block = document.createElement("p");
+      block.className = "react-body";
+      const key = document.createElement("span");
+      key.className = "react-k";
+      key.textContent = kind;
+      if (source) {
+        const badge = document.createElement("span");
+        badge.textContent = source;
+        key.append(badge);
+      }
+      block.append(key, document.createTextNode(" " + text));
+      return block;
+    }
+
     function setBusy(busy) {
       send.disabled = busy;
       prompts.forEach((button) => { button.disabled = busy; });
@@ -272,18 +345,31 @@
         latest = JSON.stringify(plan, null, 2);
         ticket.textContent = latest;
         chip.textContent = plan.status || "ERROR";
+        showReact(plan.react);
         const product = plan.product;
         const sell = product ? (labels[product.sell_point] || product.sell_point) : "";
         const landed = plan.quote ? plan.quote.total_landed_cost : null;
-        const summary = product
-          ? product.name + " · " + sell + (landed == null ? "" : " · HK$" + landed)
-          : ((plan.audit_log && plan.audit_log.length) ? plan.audit_log[plan.audit_log.length - 1].reason : "No plan");
+        const ready = (plan.lines || []).map((line) => line.sku + " " + line.name);
+        let summary;
+        if (plan.reply) {
+          summary = plan.reply;
+          if (ready.length) {
+            summary += " Ready to pay: " + ready.join(", ");
+            if (landed != null) summary += " · HK$" + landed;
+            summary += ".";
+          }
+        } else if (product) {
+          summary = product.name + " · " + sell + (landed == null ? "" : " · HK$" + landed);
+        } else {
+          summary = (plan.audit_log && plan.audit_log.length) ? plan.audit_log[plan.audit_log.length - 1].reason : "No plan";
+        }
         const stamps = (plan.audit_log || []).map((entry) => entry.event + " " + entry.status);
         bubble("Agent", summary, stamps);
       } catch (error) {
         chip.textContent = "ERROR";
         latest = String(error);
         ticket.textContent = latest;
+        showReact([]);
         bubble("Agent", "The counter could not reach the agent.");
       } finally {
         setBusy(false);

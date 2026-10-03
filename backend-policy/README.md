@@ -45,6 +45,6 @@ merchant_blacklisted -> merchant_not_whitelisted -> category_blacklisted -> mont
   Person 1 should not log those three again on resume.
 
 ## Open items
-- `category_blacklist` in `cross_team_config.json` was `[]`; changed to `["Food","Alcohol","Electronics","Health"]` so the snack-pack, condom and electronics cases are blocked.
+- `category_blacklist` is empty. Food, Alcohol, Electronics, and Health are allowed. Amount caps still apply.
 - `monthly_spent` is supplied by the caller (as in the contract); this service does not track spend itself.
 - Approval signature: `Escalation.signature` is returned; send it back as `signature` in the decision body to have it verified. Set `REQUIRE_SIGNATURE=true` to make it mandatory (Person 3 must then send it).

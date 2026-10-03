@@ -69,7 +69,7 @@ def test_create_guard_applies_category_and_monthly_cap(c):
         body = {"amount": 650, "merchant": "Watsons", "category": "Household", "sku": "S", "reason": "x"}
         return c.post("/create_escalation", json={**body, **kw})
     assert post().status_code == 200
-    assert post(category="Health", sku="S2").status_code == 422             # blacklisted category
+    assert post(category="Health", sku="S2").status_code == 200             # category list is empty
     assert post(monthly_spent=1500, sku="S3").status_code == 422            # 1500 + 650 > 2000
     assert post(category="", sku="S4").status_code == 422                   # blank category
     body = {"amount": 650, "merchant": "Watsons", "sku": "S5", "reason": "x"}

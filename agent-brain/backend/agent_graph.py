@@ -15,22 +15,33 @@ from typing import Annotated, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from clients import PolicyClient, public_escalation
+from basket import (
+    _blacklist_reply,
+    assign_same_merchant,
+    fit_basket,
+    named_merchant,
+    needs_for_every_category,
+    needs_from,
+    options_for,
+    plan_fuzzy,
+    wants_same_merchant,
+)
+from clients import PolicyClient, engine_thought, policy_snapshot, public_escalation
 from models import ActionPlan
-from openrouter import OpenRouterPlanner
+from openrouter import OpenRouterPlanner, normalize_react
 from pick import goal_from, resolve_pick
-from policy_rules import money
 
 GENESIS = "0" * 64
 
 THOUGHTS = {
     "INTENT_RECEIVED": "Read the sentence. Set query and qty.",
-    "PLAN": "The tool order is fixed: search, price, check policy, then pay.",
+    "PLAN": "The tool order is fixed.",
     "SEARCH": "Search the sandbox and keep the first product.",
     "CART_PRICED": "Price the cart. Shipping can change the amount.",
     "POLICY_CHECK": "Ask the policy engine. This node does not decide.",
     "PAYMENT": "Charge the landed total.",
     "ESCALATION_CREATED": "Open the 10-minute approval and return now.",
+    "FOLLOW_UP": "The shopper has to choose before anyone pays.",
     "HALTED": "Policy said HALT. Do not pay.",
     "ESCALATION_REFUSED": "Mother refused. Do not pay.",
     "ESCALATION_EXPIRED": "The 10 minutes ran out. Do not pay.",
@@ -49,6 +60,16 @@ class AgentState(TypedDict, total=False):
     policy: dict
     escalation: dict
     payment: dict
+    needs: list
+    lines: list
+    repairs: list
+    question: str
+    reply: str
+    payment_route: str
+    payment_reason: str
+    policy_events: list
+    basket_policy: dict
+    llm_react: list
     plan_status: str
     stop: bool
     pending_event: dict
@@ -72,13 +93,22 @@ def parse_goal(intent: str) -> dict:
     return {"intent": intent, "query": query, "qty": qty}
 
 
-def _pending(event: str, status: str, reason: str, thought: str | None = None) -> dict:
-    return {
+def _pending(
+    event: str,
+    status: str,
+    reason: str,
+    thought: str | None = None,
+    result: dict | None = None,
+) -> dict:
+    pending = {
         "event": event,
         "status": status,
         "reason": reason,
         "thought": thought or THOUGHTS[event],
     }
+    if result is not None:
+        pending["result"] = result
+    return pending
 
 
 def _stamp(log: list[dict], pending: dict) -> dict:
@@ -94,9 +124,30 @@ def _stamp(log: list[dict], pending: dict) -> dict:
         "status": pending["status"],
         "reason": pending["reason"],
         "thought": pending["thought"],
+        "result": pending.get("result"),
         "prev_hash": prev,
         "hash": digest,
     }
+
+
+def _join_reply(*parts: str) -> str:
+    return " ".join(part.strip() for part in parts if part and part.strip())
+
+
+def _blacklist_only_reply(state: AgentState) -> str:
+    product = state.get("product") or {}
+    return _blacklist_reply(
+        [
+            {
+                "category": product.get("category") or "That category",
+                "merchant": product.get("merchant") or "",
+                "sku": product.get("id") or "",
+                "name": product.get("name") or "",
+                "_rule": "category_blacklisted",
+            }
+        ],
+        False,
+    )
 
 
 def _product(raw: dict) -> dict:
@@ -136,6 +187,55 @@ def _quote(raw: dict) -> dict:
         "currency": raw.get("currency", "HKD"),
         "free_shipping_threshold": round(float(raw.get("free_shipping_threshold", 400)), 2),
     }
+
+
+def build_react(audit_log: list[dict], goal: dict | None, llm_react: list | None) -> list[dict]:
+    """Thought, action, observation. The model's own steps come first, then each tool."""
+    steps = []
+    for item in llm_react or []:
+        if isinstance(item, dict) and (item.get("thought") or item.get("observation")):
+            steps.append(
+                {
+                    "thought": str(item.get("thought") or ""),
+                    "action": str(item.get("action") or "reason"),
+                    "observation": str(item.get("observation") or ""),
+                    "source": "llm",
+                }
+            )
+    model = str((goal or {}).get("model") or "")
+    for entry in audit_log:
+        observation = str(entry.get("reason") or "")
+        result = entry.get("result") if isinstance(entry.get("result"), dict) else None
+        if result:
+            amount = result.get("amount")
+            amount_text = f"HK${float(amount):.2f}" if isinstance(amount, (int, float)) else ""
+            observation = " | ".join(
+                part
+                for part in (
+                    observation,
+                    str(result.get("status") or ""),
+                    str(result.get("rule") or ""),
+                    amount_text,
+                )
+                if part
+            )
+        if entry.get("event") == "INTENT_RECEIVED" and model == "catalog":
+            source = "catalog"
+        elif entry.get("event") == "INTENT_RECEIVED" and model == "scripted":
+            source = "scripted"
+        elif entry.get("event") == "INTENT_RECEIVED" and model:
+            source = "llm"
+        else:
+            source = "agent"
+        steps.append(
+            {
+                "thought": str(entry.get("thought") or ""),
+                "action": str(entry.get("event") or ""),
+                "observation": observation,
+                "source": source,
+            }
+        )
+    return steps
 
 
 def _failure(name: str, event: str, reason: str) -> dict:
@@ -179,12 +279,28 @@ class ShoppingAgent:
             "policy": result.get("policy"),
             "escalation": public_escalation(result["escalation"]) if result.get("escalation") else None,
             "payment": result.get("payment"),
+            "lines": result.get("lines") or [],
+            "repairs": result.get("repairs") or [],
+            "payment_route": result.get("payment_route") or "",
+            "payment_reason": result.get("payment_reason") or "",
+            "question": result.get("question") or "",
+            "reply": result.get("reply") or "",
+            "react": build_react(result.get("audit_log") or [], result.get("goal"), result.get("llm_react")),
             "audit_log": result.get("audit_log", []),
         }
         return ActionPlan.model_validate(plan).model_dump()
 
     def _audit(self, name: str):
         def audit(state: AgentState) -> dict:
+            queued = state.get("policy_events") if name == "audit_policy" else None
+            if queued:
+                log = list(state.get("audit_log") or [])
+                stamped = []
+                for pending in queued:
+                    entry = _stamp(log + stamped, pending)
+                    self.policy.log_event(entry["event"], entry["status"], entry["reason"])
+                    stamped.append(entry)
+                return {"path": [name], "audit_log": stamped}
             pending = state["pending_event"]
             entry = _stamp(state.get("audit_log", []), pending)
             self.policy.log_event(entry["event"], entry["status"], entry["reason"])
@@ -229,8 +345,123 @@ class ShoppingAgent:
         return "reason"
 
     def _reason(self, state: AgentState) -> dict:
+        catalog = self._catalog()
+        covered = needs_for_every_category(state["intent"], catalog)
+        if covered is None:
+            covered = plan_fuzzy(state["intent"], catalog)
+        if covered is not None and covered.get("question") and not covered.get("needs"):
+            question = str(covered["question"])
+            return {
+                "path": ["reason"],
+                "goal": goal_from(state["intent"], covered),
+                "plan_status": "NEEDS_INPUT",
+                "stop": True,
+                "question": question,
+                "reply": question,
+                "pending_event": _pending(
+                    "FOLLOW_UP",
+                    "ASKED",
+                    question,
+                    str(covered.get("thought") or question),
+                ),
+            }
+        if covered is not None:
+            decision = covered
+        else:
+            try:
+                decision = self.planner(state["intent"], catalog)
+            except Exception as exc:
+                return {
+                    "path": ["reason"],
+                    "plan_status": "FAILED",
+                    "stop": True,
+                    "pending_event": _pending(
+                        "INTENT_RECEIVED",
+                        "FAILED",
+                        str(exc),
+                        "The model step did not return a pick.",
+                    ),
+                }
+        needs = needs_from(decision)
+        llm_react = normalize_react(decision.get("react"))
+        asked = str(decision.get("question") or "").strip()
+        if asked and not needs:
+            return {
+                "path": ["reason"],
+                "goal": goal_from(state["intent"], decision),
+                "plan_status": "NEEDS_INPUT",
+                "stop": True,
+                "question": asked,
+                "reply": asked,
+                "llm_react": llm_react,
+                "pending_event": _pending(
+                    "FOLLOW_UP",
+                    "ASKED",
+                    asked,
+                    str(decision.get("thought") or asked),
+                ),
+            }
+        merchant_reply = str(decision.get("reply") or "")
+        if needs and (wants_same_merchant(state["intent"]) or named_merchant(state["intent"])):
+            locked = assign_same_merchant(state["intent"], catalog, needs)
+            merchant_reply = _join_reply(str(decision.get("reply") or ""), locked["reply"])
+            needs = locked["needs"]
+            if not needs:
+                return {
+                    "path": ["reason"],
+                    "goal": goal_from(state["intent"], decision),
+                    "plan_status": "FAILED",
+                    "stop": True,
+                    "reply": merchant_reply,
+                    "pending_event": _pending(
+                        "INTENT_RECEIVED",
+                        "FAILED",
+                        "No product matched",
+                        merchant_reply,
+                    ),
+                }
+        if len(needs) >= 2 or merchant_reply:
+            missing = [need["query"] for need in needs if not options_for(self._catalog(), need)]
+            if missing:
+                return {
+                    "path": ["reason"],
+                    "goal": goal_from(state["intent"], decision),
+                    "plan_status": "FAILED",
+                    "stop": True,
+                    "pending_event": _pending(
+                        "INTENT_RECEIVED",
+                        "FAILED",
+                        "No product matched",
+                        str(decision.get("thought") or "Nothing on the shelf fit the sentence."),
+                    ),
+                }
+            goal = goal_from(
+                state["intent"],
+                {
+                    "query": ", ".join(need["query"] for need in needs),
+                    "qty": len(needs),
+                    "thought": _join_reply(
+                        decision.get("thought") or "Several items. Code fits them to policy.",
+                        merchant_reply,
+                    ),
+                    "model": decision.get("model") or "",
+                },
+            )
+            if merchant_reply:
+                named = "Same-merchant request. Code picked the shop. Policy still judges every line."
+            elif decision.get("model") == "catalog":
+                named = "One item from each catalog category. Code fits the basket to policy."
+            else:
+                named = "Model may name each need. Code fits the basket to policy."
+            return {
+                "path": ["reason"],
+                "goal": goal,
+                "needs": needs,
+                "reply": merchant_reply,
+                "llm_react": llm_react,
+                "pending_event": _pending("INTENT_RECEIVED", "PARSED", named, goal["thought"]),
+            }
         try:
-            decision = self.planner(state["intent"], self._catalog())
             chosen = resolve_pick(self._catalog(), decision)
         except Exception as exc:
             return {
@@ -262,6 +493,7 @@ class ShoppingAgent:
             "path": ["reason"],
             "goal": goal,
             "product": _product(chosen),
+            "llm_react": llm_react,
             "pending_event": _pending(
                 "INTENT_RECEIVED",
                 "PARSED",
@@ -279,11 +511,21 @@ class ShoppingAgent:
             "pending_event": _pending(
                 "PLAN",
                 "FIXED_ORDER",
-                "search_products, price_cart, check_budget, then pay",
+                "search_products, price_cart, check_budget, then the policy branch",
             ),
         }
 
     def _search(self, state: AgentState) -> dict:
+        if state.get("needs"):
+            return {
+                "path": ["search_products"],
+                "pending_event": _pending(
+                    "SEARCH",
+                    "RECORDED",
+                    f"Basket of {len(state['needs'])} needs.",
+                    (state.get("goal") or {}).get("thought") or "Catalog data only.",
+                ),
+            }
         chosen = state.get("product") or {}
         sku = chosen.get("id") or (state.get("goal") or {}).get("sku")
         try:
@@ -307,6 +549,8 @@ class ShoppingAgent:
         return "end" if state.get("stop") else "price_cart"
 
     def _cart(self, state: AgentState) -> dict:
+        if state.get("needs"):
+            return self._price_basket(state)
         product = state["product"]
         qty = int(state["goal"]["qty"])
         try:
@@ -323,30 +567,77 @@ class ShoppingAgent:
             ),
         }
 
+    def _price_basket(self, state: AgentState) -> dict:
+        try:
+            fitted = fit_basket(
+                self._catalog(),
+                state["needs"],
+                float(state.get("monthly_spent") or 0),
+                self.mall.cart_lines,
+                self.policy.check_lines,
+            )
+        except Exception:
+            return _failure("price_cart", "CART_PRICED", "Mall cart failed")
+        first = fitted["lines"][0]
+        fresh = self.mall.product(first["sku"])
+        return {
+            "path": ["price_cart"],
+            "quote": _quote(fitted["quote"]),
+            "product": _product(fresh),
+            "lines": fitted["lines"],
+            "repairs": fitted["repairs"],
+            "question": fitted["question"],
+            "reply": _join_reply(state.get("reply") or "", fitted.get("reply") or ""),
+            "payment_route": fitted["payment_route"],
+            "payment_reason": fitted["payment_reason"],
+            "basket_policy": fitted["policy"],
+            "policy_events": fitted["events"],
+            "pending_event": _pending("CART_PRICED", "RECORDED", fitted["cart_reason"]),
+        }
+
     def _after_cart(self, state: AgentState) -> str:
         return "end" if state.get("stop") else "check_budget"
 
     def _budget(self, state: AgentState) -> dict:
+        if state.get("needs"):
+            result = state["basket_policy"]
+            return {
+                "path": ["check_budget"],
+                "policy": result,
+                "policy_status": result["status"],
+            }
         product = state["product"]
-        amount = state["quote"]["total_landed_cost"]
-        spent = money(state.get("monthly_spent", 0))
-        result = self.policy.check(product["merchant"], product["category"], amount, spent)
-        status = result["status"]
+        result = self.policy.check(
+            merchant=product["merchant"],
+            category=product["category"],
+            amount=state["quote"]["total_landed_cost"],
+            monthly_spent=state.get("monthly_spent", 0),
+            sku=product["id"],
+            qty=int(state["goal"]["qty"]),
+        )
         return {
             "path": ["check_budget"],
             "policy": result,
-            "policy_status": status,
-            "pending_event": _pending("POLICY_CHECK", status, result["reason"]),
+            "policy_status": result["status"],
+            "pending_event": _pending(
+                "POLICY_CHECK",
+                result["status"],
+                result["reason"],
+                engine_thought(result),
+                policy_snapshot(result),
+            ),
         }
 
     def _after_policy(self, state: AgentState) -> str:
         if state.get("stop"):
             return "end"
-        # Anything that is not an explicit PASS or ESCALATE halts. Unknown statuses never pay.
+        if state.get("question"):
+            return "ask"
         return {
             "PASS": "execute_payment",
             "ESCALATE": "create_escalation",
-        }.get(state["policy_status"], "halt")
+            "HALT": "halt",
+        }[state["policy_status"]]
 
     def _pay(self, state: AgentState) -> dict:
         approved = state.get("escalation_status") == "APPROVED"
@@ -377,7 +668,8 @@ class ShoppingAgent:
         if tag == "PASS":
             escalation_id = "none"
         try:
-            payment = self.mall.pay(float(total), f"{sku}:{qty}:{tag}:{escalation_id}")
+            route = state.get("payment_route") or "mastercard"
+            payment = self.mall.pay(float(total), f"{sku}:{qty}:{tag}:{escalation_id}", route)
         except Exception:
             return _failure("execute_payment", "PAYMENT", "Mall payment failed")
         plan_status = "COMPLETED" if payment["success"] else "FAILED"
@@ -398,15 +690,16 @@ class ShoppingAgent:
                 "amount": state["quote"]["total_landed_cost"],
                 "currency": "HKD",
                 "merchant": product["merchant"],
+                "category": product.get("category") or "",
                 "sku": product["id"],
                 "qty": state["goal"]["qty"],
                 "reason": policy["reason"],
+                "monthly_spent": float(state.get("monthly_spent") or 0),
                 "product": product,
                 "quote": state["quote"],
                 "goal": state["goal"],
                 "policy": policy,
                 "intent": state["intent"],
-                "monthly_spent": state.get("monthly_spent", 0),
             }
         )
         stored = self.policy.memory[record["escalation_id"]]
@@ -418,13 +711,27 @@ class ShoppingAgent:
             "pending_event": _pending("ESCALATION_CREATED", "PENDING", policy["reason"]),
         }
 
+    def _ask(self, state: AgentState) -> dict:
+        return {
+            "path": ["ask"],
+            "plan_status": "NEEDS_INPUT",
+            "payment": None,
+            "pending_event": _pending("FOLLOW_UP", "ASKED", state.get("question") or "Need a choice before paying."),
+        }
+
     def _halt(self, state: AgentState) -> dict:
-        reason = state["policy"]["reason"]
+        policy = state["policy"]
+        reason = policy["reason"]
+        reply = state.get("reply") or ""
+        if not reply and policy.get("rule") == "category_blacklisted":
+            reply = _blacklist_only_reply(state)
+        thought = reply or THOUGHTS["HALTED"]
         return {
             "path": ["halt"],
             "plan_status": "HALTED",
             "payment": None,
-            "pending_event": _pending("HALTED", "HALTED", reason),
+            "reply": reply,
+            "pending_event": _pending("HALTED", "HALTED", reason, thought, policy_snapshot(policy)),
         }
 
     def _abort(self, state: AgentState) -> dict:
@@ -463,6 +770,7 @@ class ShoppingAgent:
         graph.add_node("execute_payment", self._pay)
         graph.add_node("create_escalation", self._escalate)
         graph.add_node("halt", self._halt)
+        graph.add_node("ask", self._ask)
         graph.add_node("abort", self._abort)
         graph.add_node("hold", self._hold)
         for name in (
@@ -476,6 +784,7 @@ class ShoppingAgent:
             "audit_halt",
             "audit_abort",
             "audit_hold",
+            "audit_followup",
         ):
             graph.add_node(name, self._audit(name))
 
@@ -518,9 +827,12 @@ class ShoppingAgent:
                 "execute_payment": "execute_payment",
                 "create_escalation": "create_escalation",
                 "halt": "halt",
+                "ask": "ask",
                 "end": END,
             },
         )
+        graph.add_edge("ask", "audit_followup")
+        graph.add_edge("audit_followup", END)
         graph.add_edge("execute_payment", "audit_payment")
         graph.add_edge("audit_payment", END)
         graph.add_edge("create_escalation", "audit_escalation")

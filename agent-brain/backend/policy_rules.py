@@ -13,15 +13,16 @@ TTL_SECONDS = 600
 
 WHITELIST = ["Watsons", "HKTVmall", "PARKnSHOP", "Japan Home Centre"]
 BLACKLIST = ["DarkWebMart"]
-CATEGORY_BLACKLIST = ["Food", "Alcohol", "Electronics", "Health"]
+# Same list as backend-policy/config.py. Empty means every category is allowed.
+CATEGORY_BLACKLIST = []
 
 
 def money(value: float) -> float:
     return round(float(value), 2)
 
 
-def _in(value: str, options: list[str]) -> bool:
-    return value.strip().casefold() in {option.casefold() for option in options}
+def _listed(value: str, options: list[str]) -> bool:
+    return value.strip().casefold() in {item.casefold() for item in options}
 
 
 def decide(
@@ -34,18 +35,19 @@ def decide(
     monthly_spent = money(monthly_spent)
     status = "PASS"
     reason = "Under HK$500 cap"
-    if _in(merchant, BLACKLIST):
-        status, reason = "HALT", "Merchant blacklisted"
-    elif not _in(merchant, WHITELIST):
-        status, reason = "HALT", "Merchant not whitelisted"
-    elif _in(category, CATEGORY_BLACKLIST):
-        status, reason = "HALT", "Category blacklisted"
+    rule = "pass"
+    if _listed(merchant, BLACKLIST):
+        status, reason, rule = "HALT", "Merchant blacklisted", "merchant_blacklisted"
+    elif not _listed(merchant, WHITELIST):
+        status, reason, rule = "HALT", "Merchant not whitelisted", "merchant_not_whitelisted"
+    elif _listed(category, CATEGORY_BLACKLIST):
+        status, reason, rule = "HALT", "Category blacklisted", "category_blacklisted"
     elif money(monthly_spent + amount) > MONTHLY_CAP:
-        status, reason = "HALT", "Over HK$2000 monthly cap"
+        status, reason, rule = "HALT", "Over HK$2000 monthly cap", "monthly_cap"
     elif amount > BULK_CEILING:
-        status, reason = "HALT", "Over HK$800 bulk ceiling"
+        status, reason, rule = "HALT", "Over HK$800 bulk ceiling", "over_bulk_ceiling"
     elif amount > PER_TRANSACTION_CAP:
-        status, reason = "ESCALATE", "Over HK$500 per-transaction cap"
+        status, reason, rule = "ESCALATE", "Over HK$500 per-transaction cap", "over_per_transaction_cap"
 
     if status == "HALT":
         remaining = money(MONTHLY_CAP - monthly_spent)
@@ -61,4 +63,5 @@ def decide(
         "per_transaction_cap": PER_TRANSACTION_CAP,
         "monthly_cap": MONTHLY_CAP,
         "bulk_ceiling": BULK_CEILING,
+        "rule": rule,
     }
