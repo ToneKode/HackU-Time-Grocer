@@ -1,23 +1,25 @@
 <script setup>
 // Account / settings menu opened from the ☰ button in the header.
 // Desktop: dropdown panel under the header. Phone: drawer from the right.
-// Language switching works; the other items are UI only for now (marked TODO).
+// Language and theme work; the other items are UI only for now (marked TODO).
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import {
   Cancel01Icon, GoogleIcon, AppleIcon, TranslateIcon, Moon02Icon, FavouriteIcon,
   InformationCircleIcon, LegalDocument01Icon, ReturnRequestIcon, Shield01Icon,
   InstagramIcon, ThreadsIcon, WhatsappIcon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon,
+  Sun03Icon, ComputerIcon,
 } from '@hugeicons/core-free-icons'
 import { useI18n } from 'vue-i18n'
 import { LOCALES, setLocale } from '../../i18n/index.js'
 import { favourites } from '../../stores/shop.js'
+import { THEMES, themePref, resolvedTheme, setTheme } from '../../lib/theme.js'
 import Icon from './Icon.vue'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
 
 const panel = ref(null)
-const view = ref('main') // 'main' | 'language'
+const view = ref('main') // 'main' | 'language' | 'theme'
 const { t, locale } = useI18n()
 const currentLanguage = computed(() => LOCALES.find((l) => l.code === locale.value)?.label)
 
@@ -31,12 +33,20 @@ function chooseLanguage(code) {
   setLocale(code)
   showView('main')
 }
+
+const themeIcons = { system: ComputerIcon, light: Sun03Icon, dark: Moon02Icon }
+const themeLabel = (name) => t(`menu.theme${name[0].toUpperCase()}${name.slice(1)}`)
+
+function chooseTheme(name) {
+  setTheme(name)
+  showView('main')
+}
 const favouriteCount = computed(() => Object.keys(favourites.ids).length)
 
-// TODO: wire up auth, theme, favourites page and info pages.
+// TODO: wire up auth, favourites page and info pages.
 const settings = computed(() => [
   { id: 'language', icon: TranslateIcon, label: t('menu.language'), value: currentLanguage.value, action: () => showView('language') },
-  { id: 'theme', icon: Moon02Icon, label: t('menu.theme'), value: t('menu.themeSystem') },
+  { id: 'theme', icon: resolvedTheme.value === 'dark' ? Moon02Icon : Sun03Icon, label: t('menu.theme'), value: themeLabel(themePref.value), action: () => showView('theme') },
   { id: 'favourites', icon: FavouriteIcon, label: t('menu.favourites'), count: favouriteCount.value },
 ])
 const pages = computed(() => [
@@ -115,6 +125,26 @@ onBeforeUnmount(() => {
           >
             <span class="menu-row-main" :class="{ 'menu-row-value': locale === l.code }">{{ l.label }}</span>
             <Icon v-if="locale === l.code" :icon="Tick02Icon" :size="18" class="menu-check" />
+          </button>
+        </section>
+
+        <!-- Theme picker -->
+        <section v-else-if="view === 'theme'" class="menu-section menu-view">
+          <button type="button" class="menu-row menu-back" @click="showView('main')">
+            <Icon :icon="ArrowLeft01Icon" :size="18" class="menu-row-icon" />
+            <span class="menu-row-main">{{ $t('menu.chooseTheme') }}</span>
+          </button>
+          <button
+            v-for="name in THEMES"
+            :key="name"
+            type="button"
+            class="menu-row"
+            :aria-pressed="themePref === name"
+            @click="chooseTheme(name)"
+          >
+            <Icon :icon="themeIcons[name]" :size="20" class="menu-row-icon" />
+            <span class="menu-row-main" :class="{ 'menu-row-value': themePref === name }">{{ themeLabel(name) }}</span>
+            <Icon v-if="themePref === name" :icon="Tick02Icon" :size="18" class="menu-check" />
           </button>
         </section>
 
