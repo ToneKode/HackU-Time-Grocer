@@ -110,7 +110,8 @@ button { font: inherit; color: inherit; }
 }
 
 /* ---------- Category pills ---------- */
-.category-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+/* Extra padding inside the scroller (cancelled by negative margins) so hover lift + shadow aren't clipped. */
+.category-row { display: flex; gap: 10px; overflow-x: auto; padding: 6px 8px 20px; margin: -6px -8px -16px; scrollbar-width: thin; }
 .category-pill {
   display: flex; align-items: center; gap: 8px; white-space: nowrap;
   padding: 10px 16px; border-radius: 14px; font-weight: 600; font-size: 0.9rem; color: var(--text);
