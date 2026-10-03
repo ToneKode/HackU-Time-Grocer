@@ -30,8 +30,6 @@ export default {
     terms: '服務條款',
     returns: '退貨政策',
     privacy: '私隱政策',
-    followUs: '關注我們',
-    whatsapp: 'WhatsApp 客戶服務',
   },
   home: {
     heroTitle: '比較整個購物籃',

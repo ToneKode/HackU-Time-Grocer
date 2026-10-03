@@ -29,8 +29,6 @@ export default {
     terms: 'Terms of service',
     returns: 'Return policy',
     privacy: 'Privacy policy',
-    followUs: 'Follow us',
-    whatsapp: 'WhatsApp support',
   },
   home: {
     heroTitle: 'Compare the whole basket',

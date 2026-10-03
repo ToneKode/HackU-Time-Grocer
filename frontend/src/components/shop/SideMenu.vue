@@ -6,7 +6,7 @@ import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import {
   Cancel01Icon, GoogleIcon, AppleIcon, TranslateIcon, Moon02Icon, FavouriteIcon,
   InformationCircleIcon, LegalDocument01Icon, ReturnRequestIcon, Shield01Icon,
-  InstagramIcon, ThreadsIcon, WhatsappIcon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon,
+  ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon,
   Sun03Icon, ComputerIcon,
 } from '@hugeicons/core-free-icons'
 import { useI18n } from 'vue-i18n'
@@ -55,11 +55,6 @@ const pages = computed(() => [
   { id: 'terms', icon: LegalDocument01Icon, label: t('menu.terms') },
   { id: 'returns', icon: ReturnRequestIcon, label: t('menu.returns') },
   { id: 'privacy', icon: Shield01Icon, label: t('menu.privacy') },
-])
-const socials = computed(() => [
-  { id: 'instagram', icon: InstagramIcon, label: '@grocer.hk' },
-  { id: 'threads', icon: ThreadsIcon, label: '@grocer.hk' },
-  { id: 'whatsapp', icon: WhatsappIcon, label: t('menu.whatsapp') },
 ])
 
 function onKey(event) {
@@ -177,15 +172,6 @@ onBeforeUnmount(() => {
         <!-- Info pages -->
         <section class="menu-section">
           <button v-for="item in pages" :key="item.id" type="button" class="menu-row">
-            <Icon :icon="item.icon" :size="20" class="menu-row-icon" />
-            <span class="menu-row-main">{{ item.label }}</span>
-          </button>
-        </section>
-
-        <!-- Socials -->
-        <section class="menu-section">
-          <p class="menu-caption">{{ $t('menu.followUs') }}</p>
-          <button v-for="item in socials" :key="item.id" type="button" class="menu-row">
             <Icon :icon="item.icon" :size="20" class="menu-row-icon" />
             <span class="menu-row-main">{{ item.label }}</span>
           </button>

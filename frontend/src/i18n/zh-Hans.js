@@ -30,8 +30,6 @@ export default {
     terms: '服务条款',
     returns: '退货政策',
     privacy: '隐私政策',
-    followUs: '关注我们',
-    whatsapp: 'WhatsApp 客服',
   },
   home: {
     heroTitle: '比较整个购物篮',
