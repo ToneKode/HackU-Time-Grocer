@@ -84,6 +84,23 @@ describe("createApi", () => {
     });
   });
 
+  it("postSettle sends the person 1 item list", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ success: true, settlements: [] }), {
+        status: 200,
+      }),
+    );
+    await client.postSettle({
+      items: [{ sku: "SKU001", merchant: "Watsons", line_total: 89.9, qty: 1 }],
+      idempotency_key: "settle-1",
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe("http://mock-api.test/pay/settle");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      items: [{ sku: "SKU001", merchant: "Watsons", line_total: 89.9, qty: 1 }],
+      idempotency_key: "settle-1",
+    });
+  });
+
   it("throws with status on HTTP errors", async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ detail: "Unknown SKU: NOPE" }), {

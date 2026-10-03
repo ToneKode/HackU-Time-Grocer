@@ -12,14 +12,22 @@ Assumptions:
 from __future__ import annotations
 
 import asyncio
+import sys
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from data_loader import MerchantsPayload, Product, load_merchants, load_products
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from dev.payment.settle import settle_payment  # noqa: E402
 
 FREE_SHIPPING_THRESHOLD = 400.0
 SHIPPING_FEE_BELOW_THRESHOLD = 30.0
@@ -70,6 +78,30 @@ class PayResponse(BaseModel):
     reward_points_earned: int | None = None
     ts: str | None = None
     error: str | None = None
+
+
+class SettleItem(BaseModel):
+    """Person 1 CartLine, plus a short {merchant, price} form."""
+
+    sku: str | None = None
+    name: str | None = None
+    merchant: str = Field(min_length=1)
+    category: str | None = None
+    unit_price: float | None = None
+    price: float | None = None
+    qty: int = Field(default=1, gt=0)
+    line_total: float | None = None
+
+    @model_validator(mode="after")
+    def needs_an_amount(self) -> "SettleItem":
+        if self.line_total is None and self.unit_price is None and self.price is None:
+            raise ValueError("item needs line_total, unit_price, or price")
+        return self
+
+
+class SettleRequest(BaseModel):
+    items: list[SettleItem] = Field(min_length=1)
+    idempotency_key: str | None = None
 
 
 products: list[Product] = []
@@ -194,3 +226,15 @@ async def pay(body: PayRequest) -> PayResponse:
     if key:
         idempotency_store[key] = response
     return response
+
+
+@app.post("/pay/settle")
+async def pay_settle(body: SettleRequest) -> dict:
+    """Choose the cheapest rail per merchant, mock the charge, return logistics."""
+    try:
+        return await settle_payment(
+            [item.model_dump() for item in body.items],
+            idempotency_key=body.idempotency_key,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

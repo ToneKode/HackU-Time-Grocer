@@ -93,6 +93,15 @@ export function createApi(baseUrl = defaultBaseUrl(), fetchImpl = fetch) {
         body: JSON.stringify(payload),
       });
     },
+
+    postSettle({ items, idempotency_key } = {}) {
+      const payload = { items };
+      if (idempotency_key) payload.idempotency_key = idempotency_key;
+      return request("/pay/settle", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
   };
 }
 

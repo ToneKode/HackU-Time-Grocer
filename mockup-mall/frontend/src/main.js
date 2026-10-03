@@ -28,6 +28,7 @@ const els = {
   shippingNote: document.getElementById("shipping-note"),
   priceCart: document.getElementById("price-cart"),
   payNow: document.getElementById("pay-now"),
+  settleBest: document.getElementById("settle-best"),
   paymentRoute: document.getElementById("payment-route"),
   idempotencyKey: document.getElementById("idempotency-key"),
   payResult: document.getElementById("pay-result"),
@@ -101,6 +102,7 @@ function renderCart() {
   els.cartEmpty.classList.toggle("hidden", items.length > 0);
   els.priceCart.disabled = items.length === 0;
   els.payNow.disabled = !state.priced;
+  els.settleBest.disabled = !state.priced;
 
   for (const item of items) {
     const product = state.products.find((p) => p.id === item.sku);
@@ -232,6 +234,53 @@ els.priceCart.addEventListener("click", async () => {
   } finally {
     els.priceCart.textContent = "Price Cart via API";
     els.priceCart.disabled = cartItemsPayload(state.cart).length === 0;
+  }
+});
+
+function formatSettlement(result) {
+  const blocks = result.settlements.map((row) => {
+    const logistics = row.logistics;
+    return [
+      `${row.merchant} · ${row.method_label}`,
+      `cash ${formatHkd(row.cash_paid)} · reward ${formatHkd(row.reward_hkd)}`,
+      row.reason,
+      `order_id: ${row.order_id}`,
+      `logistics: ${logistics.carrier} · ${logistics.tracking_id} · ${logistics.status} · ETA ${logistics.eta}`,
+    ].join("\n");
+  });
+  return [
+    "SETTLED",
+    `cash ${formatHkd(result.cash_paid)} · reward ${formatHkd(result.reward_hkd)}`,
+    result.selection_rule,
+    "",
+    blocks.join("\n\n"),
+  ].join("\n");
+}
+
+els.settleBest.addEventListener("click", async () => {
+  if (!state.priced) return;
+  els.settleBest.disabled = true;
+  els.settleBest.textContent = "Settling…";
+  hideFlash(els.payResult);
+  try {
+    const result = await api.postSettle({
+      items: state.priced.line_items,
+      idempotency_key: els.idempotencyKey.value.trim() || undefined,
+    });
+    if (result.success) {
+      showFlash(els.payResult, formatSettlement(result), "ok");
+    } else {
+      showFlash(
+        els.payResult,
+        `FAILED\nerror: ${result.error || "merchant_declined"}`,
+        "error",
+      );
+    }
+  } catch (err) {
+    showFlash(els.payResult, `Settle failed: ${err.message}`, "error");
+  } finally {
+    els.settleBest.textContent = "Settle best rail";
+    els.settleBest.disabled = !state.priced;
   }
 });
 

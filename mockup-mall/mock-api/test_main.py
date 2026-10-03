@@ -267,3 +267,43 @@ def test_pay_latency_about_500ms(client: TestClient) -> None:
 def test_money_helper_rounds_to_two_decimals() -> None:
     assert main._money(89.999) == 90.0
     assert main._money(89.994) == 89.99
+
+
+def test_settle_chooses_rails_and_returns_logistics(client: TestClient) -> None:
+    from dev.payment.settle import clear_settlements
+
+    clear_settlements()
+    with patch("dev.payment.settle.asyncio.sleep", new_callable=AsyncMock):
+        response = client.post(
+            "/pay/settle",
+            json={
+                "items": [
+                    {
+                        "sku": "SKU001",
+                        "name": "Tempo Ultra Soft Toilet Paper 27 Rolls",
+                        "merchant": "Watsons",
+                        "unit_price": 89.9,
+                        "qty": 1,
+                        "line_total": 89.9,
+                    },
+                    {
+                        "sku": "SKU003",
+                        "name": "Kleenex Toilet Paper 30 Rolls Bulk",
+                        "merchant": "PARKnSHOP",
+                        "unit_price": 799,
+                        "qty": 1,
+                        "line_total": 799,
+                    },
+                ],
+                "idempotency_key": "settle-demo",
+            },
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    by_merchant = {row["merchant"]: row for row in body["settlements"]}
+    assert by_merchant["Watsons"]["method"] == "hase_hsbc"
+    assert by_merchant["PARKnSHOP"]["method"] == "payme"
+    assert by_merchant["PARKnSHOP"]["cash_paid"] == 769.0
+    assert by_merchant["PARKnSHOP"]["logistics"]["status"] == "confirmed"
+    assert by_merchant["PARKnSHOP"]["logistics"]["carrier"] == "PARKnSHOP Home Delivery"
