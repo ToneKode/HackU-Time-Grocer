@@ -1,0 +1,69 @@
+<script setup>
+import { computed } from 'vue'
+import { categoryById } from '../../data/catalog.js'
+import { sortedOffers, bestOffer, discountPct } from '../../lib/pricing.js'
+import { money } from '../../lib/format.js'
+import { qtyOf, setQty, addToCart, favourites, toggleFavourite } from '../../stores/shop.js'
+import MerchantLogo from './MerchantLogo.vue'
+import QtyStepper from './QtyStepper.vue'
+
+// merchant: optional store filter; the card then shows that store's price.
+const props = defineProps({
+  product: { type: Object, required: true },
+  merchant: { type: String, default: null },
+})
+
+const allowed = computed(() => (props.merchant ? [props.merchant] : null))
+const best = computed(() => bestOffer(props.product, allowed.value))
+const offers = computed(() => sortedOffers(props.product).slice(0, 3))
+const discount = computed(() => discountPct(best.value))
+const tint = computed(() => categoryById[props.product.category]?.tint)
+const qty = computed({
+  get: () => qtyOf(props.product.id),
+  set: (value) => setQty(props.product.id, value),
+})
+</script>
+
+<template>
+  <article class="product">
+    <div class="product-image" :style="{ background: tint }">
+      <span v-if="discount" class="discount">-{{ discount }}%</span>
+      <button
+        type="button"
+        class="fav"
+        :class="{ on: favourites.ids[product.id] }"
+        :aria-label="favourites.ids[product.id] ? 'Remove from favourites' : 'Add to favourites'"
+        @click="toggleFavourite(product.id)"
+      >
+        {{ favourites.ids[product.id] ? '♥' : '♡' }}
+      </button>
+      <span class="product-emoji" aria-hidden="true">{{ product.emoji }}</span>
+      <span class="size">{{ product.size }}</span>
+    </div>
+
+    <div class="price-row">
+      <template v-if="best">
+        <s v-if="best.oldPrice" class="old-price">{{ money(best.oldPrice) }}</s>
+        <span class="price">{{ money(best.price) }}</span>
+      </template>
+      <span v-else class="muted">Not available</span>
+    </div>
+
+    <!-- Product names are plain text: {{ }} only, never v-html. -->
+    <h3 class="product-name">{{ product.name }}</h3>
+
+    <ul class="offers">
+      <li v-for="offer in offers" :key="offer.merchant" :class="{ out: offer.inStock === false }">
+        <MerchantLogo :name="offer.merchant" :size="16" />
+        <span class="offer-name">{{ offer.merchant }}</span>
+        <span v-if="offer.inStock === false" class="out-tag">Out of stock</span>
+        <span class="offer-price">{{ money(offer.price) }}</span>
+      </li>
+    </ul>
+
+    <QtyStepper v-if="qty" v-model="qty" class="product-action" />
+    <button v-else type="button" class="add-btn product-action" :disabled="!bestOffer(product)" @click="addToCart(product.id)">
+      + Add to cart
+    </button>
+  </article>
+</template>

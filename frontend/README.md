@@ -1,6 +1,16 @@
 # Frontend — HacKU Time-Grocer (Person 3)
 
-Vue 3 + Vite dashboard for the agent checkout. The spec is [`contract.json`](contract.json).
+Vue 3 + Vite grocery price-comparison app (in the style of arzan.kz) with an agent checkout.
+The agent spec is [`contract.json`](contract.json).
+
+## Pages
+
+| URL | What it shows |
+|-----|---------------|
+| `/` | Hero, category shortcuts, "Mega deals" with store filter |
+| `/catalog` | Category sidebar, store chips, sorting, search results (`?q=`, `?category=`) |
+| `/cart` | **Optimal mix** (each item at its cheapest store) and **One store** comparison; checkout button is a placeholder for the agent |
+| `/agent` | Agent checkout dashboard: approval timer, audit trace (mock or live API) |
 
 ## Run
 
@@ -29,13 +39,18 @@ VITE_POLICY_URL=http://localhost:8001
 
 | File | What it does |
 |------|--------------|
-| `src/App.vue` | Page state: sends the intent, polls the escalation every second, handles Approve/Refuse |
+| `src/data/catalog.js` | Demo products, stores and categories (prices per store, HKD) |
+| `src/lib/pricing.js` | Cheapest offer, optimal mix, single-store totals, savings |
+| `src/stores/shop.js` | Cart + favourites (saved in localStorage) |
+| `src/views/` | One file per page |
+| `src/components/shop/` | Header, product card, store chips, qty stepper |
+| `src/views/AgentView.vue` | Agent page state: sends the intent, polls the escalation every second, handles Approve/Refuse |
 | `src/lib/api.js` | The only four calls the frontend makes (`contract.json` → `calls`) |
 | `src/lib/mock.js` | Fake agent + policy API for local work |
 | `src/lib/hash.js` | Checks the audit log's sha256 hash chain in the browser |
-| `src/components/` | One component per card on the screen |
+| `src/components/` | Agent dashboard cards |
 
-## Demo scenarios
+## Agent demo scenarios (`/agent`)
 
 - **Normal order:** "Buy toilet paper" with HK$0 spent. Shows *Order placed* (HK$119.90).
 - **Monthly cap hit:** the same intent with HK$1,900 spent. Shows *Halted*.
