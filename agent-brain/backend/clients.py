@@ -7,6 +7,7 @@ so POST /agent/intent can still answer the frontend.
 
 from __future__ import annotations
 
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -14,6 +15,8 @@ from typing import Any
 import httpx
 
 from policy_rules import TTL_SECONDS, decide
+
+RETRY_AFTER_SECONDS = 5.0   # after a failed call, use the local rules for this long, then try the service again
 
 PUBLIC_ESCALATION_KEYS = (
     "escalation_id",
@@ -88,7 +91,8 @@ class PolicyClient:
         http: httpx.Client | None = None,
         offline: bool = False,
     ):
-        self.offline = offline
+        self.offline = offline          # True = never call the service (tests)
+        self._down_until = 0.0          # monotonic time before which the service is not retried
         self.http = http or httpx.Client(base_url=base_url.rstrip("/"), timeout=0.4)
         self.memory: dict[str, dict] = {}
 
@@ -121,7 +125,20 @@ class PolicyClient:
             "remaining_seconds": TTL_SECONDS,
             "_expires_at": expires.isoformat(),
         }
-        remote = self._post("/create_escalation", public_escalation(record))
+        product = draft.get("product") or {}
+        remote = self._post(
+            "/create_escalation",
+            {
+                "amount": draft["amount"],
+                "currency": "HKD",
+                "merchant": draft["merchant"],
+                "category": product.get("category", ""),
+                "sku": draft["sku"],
+                "qty": draft.get("qty", 1),
+                "reason": draft["reason"],
+                "monthly_spent": draft.get("monthly_spent", 0),
+            },
+        )
         if remote and remote.get("escalation_id"):
             record["escalation_id"] = remote["escalation_id"]
             for key in PUBLIC_ESCALATION_KEYS:
@@ -164,12 +181,12 @@ class PolicyClient:
         return self._request("GET", path, None)
 
     def _request(self, method: str, path: str, payload: dict | None) -> Any:
-        if self.offline:
+        if self.offline or time.monotonic() < self._down_until:
             return None
         try:
             response = self.http.request(method, path, json=payload)
         except httpx.HTTPError:
-            self.offline = True
+            self._down_until = time.monotonic() + RETRY_AFTER_SECONDS
             return None
         if response.status_code >= 400:
             return None

@@ -19,13 +19,13 @@ from clients import PolicyClient, public_escalation
 from models import ActionPlan
 from openrouter import OpenRouterPlanner
 from pick import goal_from, resolve_pick
-from policy_rules import BULK_CEILING, MONTHLY_CAP, PER_TRANSACTION_CAP, money
+from policy_rules import money
 
 GENESIS = "0" * 64
 
 THOUGHTS = {
     "INTENT_RECEIVED": "Read the sentence. Set query and qty.",
-    "PLAN": "The tool order is fixed. Person 2 is a logged skip.",
+    "PLAN": "The tool order is fixed: search, price, check policy, then pay.",
     "SEARCH": "Search the sandbox and keep the first product.",
     "CART_PRICED": "Price the cart. Shipping can change the amount.",
     "POLICY_CHECK": "Ask the policy engine. This node does not decide.",
@@ -279,7 +279,7 @@ class ShoppingAgent:
             "pending_event": _pending(
                 "PLAN",
                 "FIXED_ORDER",
-                "search_products, price_cart, skip person 2, then pay",
+                "search_products, price_cart, check_budget, then pay",
             ),
         }
 
@@ -327,50 +327,33 @@ class ShoppingAgent:
         return "end" if state.get("stop") else "check_budget"
 
     def _budget(self, state: AgentState) -> dict:
+        product = state["product"]
         amount = state["quote"]["total_landed_cost"]
         spent = money(state.get("monthly_spent", 0))
-        result = {
-            "status": "SKIPPED",
-            "reason": "Person 2 check skipped",
-            "amount": money(amount),
-            "currency": "HKD",
-            "monthly_spent": spent,
-            "monthly_remaining": money(MONTHLY_CAP - spent),
-            "per_transaction_cap": PER_TRANSACTION_CAP,
-            "monthly_cap": MONTHLY_CAP,
-            "bulk_ceiling": BULK_CEILING,
-        }
+        result = self.policy.check(product["merchant"], product["category"], amount, spent)
+        status = result["status"]
         return {
             "path": ["check_budget"],
             "policy": result,
-            "policy_status": "SKIPPED",
-            "pending_event": _pending(
-                "POLICY_CHECK",
-                "SKIPPED",
-                "Person 2 check skipped",
-                "The policy engine is not called. The skip is still on the hash chain.",
-            ),
+            "policy_status": status,
+            "pending_event": _pending("POLICY_CHECK", status, result["reason"]),
         }
 
     def _after_policy(self, state: AgentState) -> str:
         if state.get("stop"):
             return "end"
+        # Anything that is not an explicit PASS or ESCALATE halts. Unknown statuses never pay.
         return {
             "PASS": "execute_payment",
-            "SKIPPED": "execute_payment",
             "ESCALATE": "create_escalation",
-            "HALT": "halt",
-        }[state["policy_status"]]
+        }.get(state["policy_status"], "halt")
 
     def _pay(self, state: AgentState) -> dict:
         approved = state.get("escalation_status") == "APPROVED"
-        skipped = state.get("policy_status") == "SKIPPED" or (
-            isinstance(state.get("policy"), dict) and state["policy"].get("status") == "SKIPPED"
-        )
         passed = state.get("policy_status") == "PASS" or (
             isinstance(state.get("policy"), dict) and state["policy"].get("status") == "PASS"
         )
-        if not approved and not passed and not skipped:
+        if not approved and not passed:
             return {
                 "path": ["execute_payment"],
                 "plan_status": "FAILED",
@@ -389,14 +372,9 @@ class ShoppingAgent:
             total = state["escalation"].get("amount")
         sku = product.get("id") or (state.get("escalation") or {}).get("sku")
         qty = goal.get("qty") or 1
-        if skipped and not approved:
-            tag = "SKIPPED"
-        elif passed and not approved:
-            tag = "PASS"
-        else:
-            tag = "ESCALATE"
+        tag = "PASS" if passed and not approved else "ESCALATE"
         escalation_id = state.get("escalation_id") or "none"
-        if tag in {"PASS", "SKIPPED"}:
+        if tag == "PASS":
             escalation_id = "none"
         try:
             payment = self.mall.pay(float(total), f"{sku}:{qty}:{tag}:{escalation_id}")
@@ -428,6 +406,7 @@ class ShoppingAgent:
                 "goal": state["goal"],
                 "policy": policy,
                 "intent": state["intent"],
+                "monthly_spent": state.get("monthly_spent", 0),
             }
         )
         stored = self.policy.memory[record["escalation_id"]]

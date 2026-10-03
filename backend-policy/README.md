@@ -6,19 +6,30 @@ Contract: `agent-brain/cross_team_config.json` and `frontend/contract.json`.
 ## Run
 ```bash
 cd backend-policy && pip install -r requirements.txt
-uvicorn main:app --port 8001 --reload       # uses fakeredis by default; no Redis needed
-pytest -q                                   # 24 tests
+cp .env.example .env                         # loaded automatically; set REDIS_URL here
+uvicorn main:app --port 8001 --reload
+pytest -q
 ```
-Real Redis: `REDIS_URL=redis://localhost:6379/0 uvicorn main:app --port 8001`.
+Without `REDIS_URL` the service uses in-process fakeredis (no Redis needed, but escalations are lost on restart
+and a warning is logged). With real Redis:
+
+```bash
+docker run -d --name timegrocer-redis -p 6379:6379 redis:7 redis-server --appendonly yes
+redis-cli ping                               # PONG
+curl localhost:8001/health                   # {"ok":true,"audit_entries":N,"redis":true,"store":"redis"}
+```
+`store` must say `redis`, not `fakeredis`. The ledger (`data/ledger.jsonl`) is resolved relative to this folder,
+whatever directory you start uvicorn from. If Redis goes down, escalation endpoints answer `503` with a JSON body
+and the expiry sweeper keeps retrying; restart is not needed once Redis is back.
 
 ## Endpoints
 | Method | Path | Who calls it | Notes |
 |---|---|---|---|
-| POST | `/check_policy` | Person 1 (`check_budget`) | `{merchant, category, amount, currency, sku, qty, monthly_spent}` -> PolicyResult (+ extra `rule`) |
+| POST | `/check_policy` | Person 1 (`check_budget`) | `{merchant, category, amount, currency, sku, qty, monthly_spent}` (`category` must be non-empty) -> PolicyResult (+ extra `rule`) |
 | POST | `/log_event` | Person 1 | `{event, status, reason, thought?}` -> LogEntry. `thought` is shown in the UI but not hashed |
 | GET | `/audit_log` | Person 3 | AuditEntry[] ascending by index |
 | GET | `/audit_log/verify` | Person 3 | `{valid, broken_at, reason}`; re-reads the file, so edits are detected |
-| POST | `/create_escalation` | Person 1 | Starts the 600 s Redis timer. 422 unless the amount is in (500, 800] and the merchant is allowed |
+| POST | `/create_escalation` | Person 1 | `{amount, currency, merchant, category, sku, qty, reason, monthly_spent?}`. Starts the 600 s Redis timer. Re-runs the full policy: 422 unless the verdict is ESCALATE |
 | GET | `/escalations/{id}` | Person 1, Person 3 (poll 1 s) | PENDING / APPROVED / REFUSED / EXPIRED, `remaining_seconds` |
 | POST | `/escalations/{id}/decision` | Person 3 | `{decision: APPROVE\|REFUSE}`. Always 200 with the Escalation; extra `decision_applied`, and `late_decision_ignored` after expiry |
 | GET | `/rules` | Person 3 | Active caps and lists for the dashboard |

@@ -13,11 +13,15 @@ TTL_SECONDS = 600
 
 WHITELIST = ["Watsons", "HKTVmall", "PARKnSHOP", "Japan Home Centre"]
 BLACKLIST = ["DarkWebMart"]
-CATEGORY_BLACKLIST: list[str] = []
+CATEGORY_BLACKLIST = ["Food", "Alcohol", "Electronics", "Health"]
 
 
 def money(value: float) -> float:
     return round(float(value), 2)
+
+
+def _in(value: str, options: list[str]) -> bool:
+    return value.strip().casefold() in {option.casefold() for option in options}
 
 
 def decide(
@@ -30,11 +34,11 @@ def decide(
     monthly_spent = money(monthly_spent)
     status = "PASS"
     reason = "Under HK$500 cap"
-    if merchant in BLACKLIST:
+    if _in(merchant, BLACKLIST):
         status, reason = "HALT", "Merchant blacklisted"
-    elif merchant not in WHITELIST:
+    elif not _in(merchant, WHITELIST):
         status, reason = "HALT", "Merchant not whitelisted"
-    elif category in CATEGORY_BLACKLIST:
+    elif _in(category, CATEGORY_BLACKLIST):
         status, reason = "HALT", "Category blacklisted"
     elif money(monthly_spent + amount) > MONTHLY_CAP:
         status, reason = "HALT", "Over HK$2000 monthly cap"

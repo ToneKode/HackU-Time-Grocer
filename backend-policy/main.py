@@ -6,12 +6,15 @@ create_escalation / get_escalation / resolve_escalation) and frontend/contract.j
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
-from typing import Literal
+from typing import Annotated, Literal
 
+import redis
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, StringConstraints
 
 import policy_engine
 from audit_log import AuditLog
@@ -19,16 +22,40 @@ from config import (BULK_CEILING, CATEGORY_BLACKLIST, CURRENCY, MERCHANT_BLACKLI
                     MONTHLY_CAP, PER_TRANSACTION_CAP, settings)
 from escalations import BadSignature, Escalations, NotFound, make_redis
 
+log = logging.getLogger("policy")
+
 S = settings()
+USING_FAKEREDIS = S["redis_url"].startswith("fakeredis")
 audit = AuditLog(S["ledger_path"])
 escalations = Escalations(make_redis(S["redis_url"]), audit, S["ttl"], S["signing_secret"])
+
+NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if USING_FAKEREDIS:
+        log.warning("REDIS_URL not set: using in-process fakeredis. Escalations are lost on restart.")
+    else:
+        try:
+            escalations.r.ping()
+            log.info("Connected to Redis at %s", S["redis_url"])
+        except redis.RedisError as exc:
+            log.error("Cannot reach Redis at %s (%s). Escalation endpoints will return 503 until it is up.",
+                      S["redis_url"], exc)
+
     async def sweeper():                       # logs expiries nobody looked at
+        failing = False
         while True:
-            await asyncio.to_thread(escalations.sweep)
+            try:
+                await asyncio.to_thread(escalations.sweep)
+                if failing:
+                    log.info("sweeper: recovered")
+                    failing = False
+            except Exception as exc:           # a Redis blip must not kill the sweeper for good
+                if not failing:
+                    log.error("sweeper: %s: %s. Retrying every second.", type(exc).__name__, exc)
+                    failing = True
             await asyncio.sleep(1)
     task = asyncio.create_task(sweeper())
     yield
@@ -40,10 +67,17 @@ app.add_middleware(CORSMiddleware, allow_origins=[S["frontend_origin"]], allow_c
                    allow_methods=["*"], allow_headers=["*"])
 
 
+@app.exception_handler(redis.RedisError)
+async def redis_unavailable(_request, exc: redis.RedisError) -> JSONResponse:
+    return JSONResponse(status_code=503,
+                        content={"detail": "State store (Redis) unavailable. Try again shortly.",
+                                 "error": type(exc).__name__})
+
+
 # ------------------------------------------------------------------ models
 class CheckPolicyIn(BaseModel):
     merchant: str
-    category: str
+    category: NonEmpty                        # empty/blank would skip the category blacklist, so reject it
     amount: float = Field(ge=0)               # total_landed_cost
     currency: Literal["HKD"] = "HKD"
     sku: str = ""
@@ -62,9 +96,11 @@ class CreateEscalationIn(BaseModel):
     amount: float = Field(gt=0)
     currency: Literal["HKD"] = "HKD"
     merchant: str
+    category: NonEmpty                        # needed to re-run the full policy server-side
     sku: str
     qty: int = Field(default=1, ge=1)
     reason: str
+    monthly_spent: float = Field(default=0, ge=0)
 
 
 class DecisionIn(BaseModel):
@@ -75,7 +111,12 @@ class DecisionIn(BaseModel):
 # ------------------------------------------------------------------ routes
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "audit_entries": len(audit.entries())}
+    try:
+        redis_ok = bool(escalations.r.ping())
+    except redis.RedisError:
+        redis_ok = False
+    return {"ok": redis_ok, "audit_entries": len(audit.entries()), "redis": redis_ok,
+            "store": "fakeredis" if USING_FAKEREDIS else "redis"}
 
 
 @app.post("/check_policy")
@@ -100,13 +141,10 @@ def verify_audit_log() -> dict:
 
 @app.post("/create_escalation")
 def create_escalation(body: CreateEscalationIn) -> dict:
-    # Server-side guard: only a policy ESCALATE may open an approval request.
-    check = policy_engine.evaluate(body.merchant, "", body.amount, 0)
-    if check["status"] == "HALT" and check["rule"] in ("merchant_blacklisted", "merchant_not_whitelisted",
-                                                       "over_bulk_ceiling"):
+    # Server-side guard: re-run the whole policy. Only an ESCALATE verdict may open an approval request.
+    check = policy_engine.evaluate(body.merchant, body.category, body.amount, body.monthly_spent)
+    if check["status"] != "ESCALATE":
         raise HTTPException(422, f"Cannot escalate: {check['reason']}")
-    if body.amount <= PER_TRANSACTION_CAP:
-        raise HTTPException(422, "Cannot escalate: amount is within the per-transaction cap")
     return escalations.create(body.amount, body.currency, body.merchant, body.sku, body.qty, body.reason)
 
 

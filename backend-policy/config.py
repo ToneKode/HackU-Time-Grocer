@@ -6,6 +6,16 @@ test_policy.py::test_rules_match_cross_team_config fails if they drift apart.
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load backend-policy/.env if python-dotenv is installed. Real environment variables win.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:
+    pass
 
 CURRENCY = "HKD"
 
@@ -34,13 +44,18 @@ def env(name: str, default: str) -> str:
     return os.getenv(name, default)
 
 
+def _ledger_path() -> str:
+    path = env("LEDGER_PATH", "data/ledger.jsonl")
+    return path if os.path.isabs(path) else str(BASE_DIR / path)    # same file whatever the cwd is
+
+
 def settings() -> dict:
     return {
         "port": int(env("POLICY_API_PORT", "8001")),
         "frontend_origin": env("FRONTEND_ORIGIN", "http://localhost:5173"),
         # fakeredis:// = in-process, no server needed. Real: redis://localhost:6379/0
         "redis_url": env("REDIS_URL", "fakeredis://"),
-        "ledger_path": env("LEDGER_PATH", "data/ledger.jsonl"),
+        "ledger_path": _ledger_path(),
         "ttl": int(env("ESCALATION_TTL_SECONDS", "600")),
         "signing_secret": env("APPROVAL_SIGNING_SECRET", "dev-secret-change-me"),
         "require_signature": env("REQUIRE_SIGNATURE", "false").lower() == "true",

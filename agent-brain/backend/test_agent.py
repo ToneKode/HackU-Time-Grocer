@@ -1,9 +1,10 @@
-"""Shelf picks against fake_mall JSON. Person 2 is skipped and still logged."""
+"""Shelf picks against fake_mall JSON. The policy check runs before every payment."""
 
 from __future__ import annotations
 
 import hashlib
 
+import httpx
 from fastapi.testclient import TestClient
 
 from agent_graph import ShoppingAgent, parse_goal
@@ -97,6 +98,8 @@ def test_policy_rules() -> None:
     assert halted["status"] == "HALT"
     assert halted["reason"] == "Over HK$2000 monthly cap"
     assert decide("DarkWebMart", "Household", 10, 0)["reason"] == "Merchant blacklisted"
+    assert decide("Watsons", "Electronics", 10, 0)["reason"] == "Category blacklisted"
+    assert decide("watsons", "household", 10, 0)["status"] == "PASS"      # matching ignores case
 
 
 def test_goal_parser() -> None:
@@ -132,7 +135,7 @@ def test_sell_point_overrides_a_wrong_sku() -> None:
     assert resolve_pick(catalog, {"query": "spaceship", "sell_point": "cheap", "sku": ""}) is None
 
 
-def test_cheap_toilet_paper_pays_and_skips_policy() -> None:
+def test_cheap_toilet_paper_passes_policy_and_pays() -> None:
     api, _policy = client()
     response = api.post("/agent/intent", json={"intent": "cheap toilet paper", "monthly_spent": 1900})
     assert response.status_code == 200
@@ -144,9 +147,9 @@ def test_cheap_toilet_paper_pays_and_skips_policy() -> None:
     assert body["product"]["sell_point"] == "cheap"
     assert body["quote"]["shipping_fee"] == 30
     assert body["quote"]["total_landed_cost"] == 59.9
-    assert body["policy"]["status"] == "SKIPPED"
-    assert body["policy"]["reason"] == "Person 2 check skipped"
-    assert body["policy"]["monthly_remaining"] == 100
+    assert body["policy"]["status"] == "PASS"
+    assert body["policy"]["reason"] == "Under HK$500 cap"
+    assert body["policy"]["monthly_remaining"] == 40.1
     assert body["escalation"] is None
     assert body["payment"]["success"] is True
     assert body["payment"]["charged"] == 59.9
@@ -159,7 +162,7 @@ def test_cheap_toilet_paper_pays_and_skips_policy() -> None:
         "POLICY_CHECK",
         "PAYMENT",
     ]
-    assert body["audit_log"][4]["status"] == "SKIPPED"
+    assert body["audit_log"][4]["status"] == "PASS"
     assert body["audit_log"][-1]["status"] == "COMPLETED"
     assert_chain(body["audit_log"])
 
@@ -171,12 +174,43 @@ def test_best_rated_earbuds_and_everyday_rice() -> None:
     assert earbuds["product"]["sell_point"] == "best_rating"
     assert earbuds["quote"]["shipping_fee"] == 0
     assert earbuds["quote"]["total_landed_cost"] == 698.0
-    assert earbuds["policy"]["status"] == "SKIPPED"
+    assert earbuds["policy"]["status"] == "HALT"            # Electronics is a blacklisted category
+    assert earbuds["status"] == "HALTED"
+    assert earbuds["payment"] is None
     assert_chain(earbuds["audit_log"])
     rice = api.post("/agent/intent", json={"intent": "everyday rice"}).json()
     assert rice["product"]["id"] == "SKU005"
     assert rice["goal"]["sell_point"] == "highest_usage"
     assert rice["quote"]["total_landed_cost"] == 98.0
+    assert rice["status"] == "HALTED"                         # Food is a blacklisted category
+    assert rice["payment"] is None
+
+
+def test_monthly_cap_halts_cheap_toilet_paper() -> None:
+    api, _policy = client()
+    body = api.post("/agent/intent", json={"intent": "cheap toilet paper", "monthly_spent": 1990}).json()
+    assert body["status"] == "HALTED"
+    assert body["policy"]["status"] == "HALT"
+    assert body["policy"]["reason"] == "Over HK$2000 monthly cap"
+    assert body["payment"] is None
+    assert events(body)[-2:] == ["POLICY_CHECK", "HALTED"]
+    assert_chain(body["audit_log"])
+
+
+def test_policy_client_recovers_after_outage() -> None:
+    state = {"up": False}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if not state["up"]:
+            raise httpx.ConnectError("down", request=request)
+        return httpx.Response(200, json={"status": "HALT", "reason": "Category blacklisted"})
+
+    transport = httpx.MockTransport(handler)
+    policy = PolicyClient(http=httpx.Client(base_url="http://policy.test", transport=transport))
+    assert policy.check("Watsons", "Household", 50, 0)["status"] == "PASS"   # outage: local rules answer
+    state["up"] = True
+    policy._down_until = 0.0                                                 # skip the retry cooldown
+    assert policy.check("Watsons", "Household", 50, 0)["status"] == "HALT"   # service is used again
 
 
 def test_unknown_request_is_logged_and_does_not_pay() -> None:
@@ -231,8 +265,10 @@ if __name__ == "__main__":
     test_goal_parser()
     test_catalog_shape()
     test_sell_point_overrides_a_wrong_sku()
-    test_cheap_toilet_paper_pays_and_skips_policy()
+    test_cheap_toilet_paper_passes_policy_and_pays()
     test_best_rated_earbuds_and_everyday_rice()
+    test_monthly_cap_halts_cheap_toilet_paper()
+    test_policy_client_recovers_after_outage()
     test_unknown_request_is_logged_and_does_not_pay()
     test_missing_openrouter_key_is_logged()
     test_openrouter_json_parse()

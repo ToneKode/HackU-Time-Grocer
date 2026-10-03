@@ -56,6 +56,13 @@ def test_bad_input_rejected(c):
                                          "currency": "USD"}).status_code == 422
 
 
+def test_blank_category_rejected(c):
+    for bad in ("", "   "):
+        r = c.post("/check_policy", json={"merchant": "Watsons", "category": bad, "amount": 5})
+        assert r.status_code == 422
+    assert c.post("/check_policy", json={"merchant": "Watsons", "amount": 5}).status_code == 422
+
+
 def test_rules_match_cross_team_config():
     path = os.path.join(os.path.dirname(__file__), "..", "agent-brain", "cross_team_config.json")
     if not os.path.exists(path):

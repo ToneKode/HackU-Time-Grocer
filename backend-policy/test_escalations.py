@@ -56,12 +56,40 @@ def test_duplicate_create_returns_same_pending_then_new_after_decision(c):
 
 
 def test_create_guards(c):
-    r = c.post("/create_escalation", json={"amount": 300, "merchant": "Watsons", "sku": "S", "reason": "x"})
+    r = c.post("/create_escalation", json={"amount": 300, "merchant": "Watsons", "category": "Household", "sku": "S", "reason": "x"})
     assert r.status_code == 422
-    r = c.post("/create_escalation", json={"amount": 900, "merchant": "Watsons", "sku": "S", "reason": "x"})
+    r = c.post("/create_escalation", json={"amount": 900, "merchant": "Watsons", "category": "Household", "sku": "S", "reason": "x"})
     assert r.status_code == 422
-    r = c.post("/create_escalation", json={"amount": 700, "merchant": "DarkWebMart", "sku": "S", "reason": "x"})
+    r = c.post("/create_escalation", json={"amount": 700, "merchant": "DarkWebMart", "category": "Household", "sku": "S", "reason": "x"})
     assert r.status_code == 422
+
+
+def test_create_guard_applies_category_and_monthly_cap(c):
+    def post(**kw):
+        body = {"amount": 650, "merchant": "Watsons", "category": "Household", "sku": "S", "reason": "x"}
+        return c.post("/create_escalation", json={**body, **kw})
+    assert post().status_code == 200
+    assert post(category="Health", sku="S2").status_code == 422             # blacklisted category
+    assert post(monthly_spent=1500, sku="S3").status_code == 422            # 1500 + 650 > 2000
+    assert post(category="", sku="S4").status_code == 422                   # blank category
+    body = {"amount": 650, "merchant": "Watsons", "sku": "S5", "reason": "x"}
+    assert c.post("/create_escalation", json=body).status_code == 422      # category is required
+
+
+def test_redis_failure_returns_json_503(c, monkeypatch):
+    import main
+    import redis
+
+    def boom(*_a, **_k):
+        raise redis.ConnectionError("down")
+    monkeypatch.setattr(main.escalations, "get", boom)
+    r = c.get("/escalations/esc_x")
+    assert r.status_code == 503 and "unavailable" in r.json()["detail"]
+
+
+def test_health_reports_redis(c):
+    body = c.get("/health").json()
+    assert body["ok"] is True and body["redis"] is True and body["store"] == "fakeredis"
 
 
 def test_unknown_escalation_404(c):

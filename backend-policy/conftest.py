@@ -27,6 +27,7 @@ def policy(c, amount, merchant="Watsons", category="Household", spent=0, **kw):
                                          "monthly_spent": spent, **kw}).json()
 
 
-def escalate(c, amount=799.0, merchant="PARKnSHOP", sku="SKU003"):
+def escalate(c, amount=799.0, merchant="PARKnSHOP", sku="SKU003", category="Household", **kw):
     return c.post("/create_escalation", json={"amount": amount, "currency": "HKD", "merchant": merchant,
-                                              "sku": sku, "qty": 1, "reason": "Over HK$500 per-transaction cap"}).json()
+                                              "category": category, "sku": sku, "qty": 1,
+                                              "reason": "Over HK$500 per-transaction cap", **kw}).json()
