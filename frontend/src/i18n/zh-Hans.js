@@ -156,6 +156,7 @@ export default {
     noneAtStore: '这家商店没有销售你收藏的商品。',
   },
   auth: {
+    back: '返回',
     loginTitle: '欢迎回来',
     loginSubtitle: '登录后，你的购物车、收藏和代理设置会一直跟着你。',
     registerTitle: '创建账户',

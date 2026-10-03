@@ -9,8 +9,9 @@ export const router = createRouter({
     { path: '/product/:id', name: 'product', component: () => import('./views/ProductView.vue') },
     { path: '/favourites', name: 'favourites', component: () => import('./views/FavouritesView.vue') },
     { path: '/cart', name: 'cart', component: () => import('./views/CartView.vue') },
-    { path: '/login', name: 'login', component: () => import('./views/LoginView.vue') },
-    { path: '/register', name: 'register', component: () => import('./views/RegisterView.vue') },
+    // hideHeader: focused pages without the top navigation bar.
+    { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { hideHeader: true } },
+    { path: '/register', name: 'register', component: () => import('./views/RegisterView.vue'), meta: { hideHeader: true } },
     { path: '/about', name: 'about', component: () => import('./views/AboutView.vue') },
     { path: '/terms', name: 'terms', component: () => import('./views/LegalView.vue'), meta: { doc: 'terms' } },
     { path: '/returns', name: 'returns', component: () => import('./views/LegalView.vue'), meta: { doc: 'returns' } },

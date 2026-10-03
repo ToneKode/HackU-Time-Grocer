@@ -156,6 +156,7 @@ export default {
     noneAtStore: '這間商店沒有售賣你的最愛貨品。',
   },
   auth: {
+    back: '返回',
     loginTitle: '歡迎回來',
     loginSubtitle: '登入後，你的購物車、我的最愛及代理設定會一直跟著你。',
     registerTitle: '建立帳戶',

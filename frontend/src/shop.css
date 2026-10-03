@@ -636,3 +636,14 @@ button { font: inherit; color: inherit; }
   .auth-art-side { order: -1; min-height: 0; height: 210px; padding: 0; border-radius: 22px; }
   .auth-art { height: 100%; width: auto; max-width: none; }
 }
+
+/* Back link on header-less auth pages */
+.auth-back {
+  grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin: 0 0 -12px -8px;
+  padding: 6px 10px; border: 0; border-radius: 10px; background: none; cursor: pointer;
+  color: var(--text); font-weight: 600; font-size: 0.95rem;
+}
+.auth-back:hover { background: var(--surface-2); }
+@media (max-width: 860px) {
+  .auth-back { order: -2; margin-bottom: -8px; }
+}

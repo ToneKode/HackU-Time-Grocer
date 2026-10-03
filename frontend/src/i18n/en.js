@@ -155,6 +155,7 @@ export default {
     noneAtStore: 'None of your favourites are sold at this store.',
   },
   auth: {
+    back: 'Back',
     loginTitle: 'Welcome back',
     loginSubtitle: 'Log in to keep your cart, favourites and agent settings with you.',
     registerTitle: 'Create your account',
