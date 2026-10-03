@@ -8,11 +8,12 @@ import {
   TissuePaperIcon, ShampooIcon, BabyBottleIcon, MedicineBottle01Icon,
 } from '@hugeicons/core-free-icons'
 
+// Store colours are CSS vars (shop.css) so charts and logos share one validated palette.
 export const merchants = [
-  { name: 'Watsons', short: 'W', color: '#00a3ad' },
-  { name: 'HKTVmall', short: 'HK', color: '#2b9a3e' },
-  { name: 'PARKnSHOP', short: 'P', color: '#e2231a' },
-  { name: 'Japan Home Centre', short: 'J', color: '#f08a00' },
+  { name: 'Watsons', short: 'W', color: 'var(--m-1)' },
+  { name: 'HKTVmall', short: 'HK', color: 'var(--m-2)' },
+  { name: 'PARKnSHOP', short: 'P', color: 'var(--m-3)' },
+  { name: 'Japan Home Centre', short: 'J', color: 'var(--m-4)' },
 ]
 
 export const categories = [

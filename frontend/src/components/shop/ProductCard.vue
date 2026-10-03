@@ -39,7 +39,9 @@ const qty = computed({
       >
         <Icon :icon="FavouriteIcon" :size="18" />
       </button>
-      <span class="product-emoji" aria-hidden="true">{{ product.emoji }}</span>
+      <RouterLink :to="{ name: 'product', params: { id: product.id } }" class="product-image-link" :aria-label="product.name">
+        <span class="product-emoji" aria-hidden="true">{{ product.emoji }}</span>
+      </RouterLink>
       <span class="size">{{ product.size }}</span>
     </div>
 
@@ -52,7 +54,9 @@ const qty = computed({
     </div>
 
     <!-- Product names are plain text: {{ }} only, never v-html. -->
-    <h3 class="product-name">{{ product.name }}</h3>
+    <h3 class="product-name">
+      <RouterLink :to="{ name: 'product', params: { id: product.id } }">{{ product.name }}</RouterLink>
+    </h3>
 
     <ul class="offers">
       <li v-for="offer in offers" :key="offer.merchant" :class="{ out: offer.inStock === false }">

@@ -75,7 +75,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
             <span class="cart-emoji" aria-hidden="true">{{ item.product.emoji }}</span>
             <div class="cart-item-body">
               <div class="cart-item-top">
-                <span class="cart-item-name">{{ item.product.name }}</span>
+                <RouterLink :to="{ name: 'product', params: { id: item.product.id } }" class="cart-item-name">{{ item.product.name }}</RouterLink>
                 <button type="button" class="icon-btn" aria-label="Remove item" @click="setQty(item.product.id, 0)"><Icon :icon="Delete02Icon" :size="18" /></button>
               </div>
               <div class="cart-item-bottom">
