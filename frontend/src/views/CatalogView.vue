@@ -5,6 +5,8 @@ import { products, categories, categoryById } from '../data/catalog.js'
 import { bestOffer, discountPct } from '../lib/pricing.js'
 import ProductCard from '../components/shop/ProductCard.vue'
 import MerchantChips from '../components/shop/MerchantChips.vue'
+import Icon from '../components/shop/Icon.vue'
+import { ShoppingBag01Icon, SearchRemoveIcon } from '@hugeicons/core-free-icons'
 
 const route = useRoute()
 const router = useRouter()
@@ -50,7 +52,7 @@ const title = computed(() => categoryById[category.value]?.label ?? 'All product
     <aside class="sidebar">
       <h2 class="sidebar-title">Categories</h2>
       <button type="button" class="side-item" :class="{ on: !category }" @click="setCategory(null)">
-        <span>🛍️ All products</span><span class="muted">{{ products.length }}</span>
+        <span class="side-label"><Icon :icon="ShoppingBag01Icon" :size="18" /> All products</span><span class="muted">{{ products.length }}</span>
       </button>
       <button
         v-for="c in categories"
@@ -60,7 +62,7 @@ const title = computed(() => categoryById[category.value]?.label ?? 'All product
         :class="{ on: category === c.id }"
         @click="setCategory(c.id)"
       >
-        <span>{{ c.emoji }} {{ c.label }}</span><span class="muted">{{ countByCategory[c.id] }}</span>
+        <span class="side-label"><Icon :icon="c.icon" :size="18" /> {{ c.label }}</span><span class="muted">{{ countByCategory[c.id] }}</span>
       </button>
     </aside>
 
@@ -87,7 +89,7 @@ const title = computed(() => categoryById[category.value]?.label ?? 'All product
       </div>
 
       <div v-if="!results.length" class="empty-box">
-        <div class="empty-icon">🔍</div>
+        <div class="empty-icon"><Icon :icon="SearchRemoveIcon" :size="40" :stroke-width="1.5" /></div>
         <h3>Nothing found</h3>
         <p class="muted">Try another category, store or search word.</p>
       </div>

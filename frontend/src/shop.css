@@ -55,12 +55,12 @@ button { font: inherit; color: inherit; }
 .search input { flex: 1; border: 0; outline: 0; background: transparent; font: inherit; color: var(--text); padding: 6px 0; min-width: 0; }
 .search-icon { color: var(--muted); font-size: 1.1rem; }
 .nav { display: flex; gap: 4px; margin-left: auto; }
-.nav-link { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; font-size: 0.9rem; color: var(--muted); }
+.nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; font-size: 0.9rem; color: var(--muted); }
 .nav-link:hover { background: var(--surface-2); }
 .nav-link.router-link-exact-active { color: var(--text); font-weight: 600; }
 .nav-icon { position: relative; }
 .nav-badge {
-  position: absolute; top: -8px; right: -10px; min-width: 18px; height: 18px; padding: 0 5px;
+  position: absolute; top: -7px; right: -9px; min-width: 16px; height: 18px; padding: 0 5px;
   border-radius: 9px; background: var(--primary); color: var(--primary-ink);
   font-size: 0.7rem; font-weight: 700; display: grid; place-items: center;
 }
@@ -268,3 +268,19 @@ button { font: inherit; color: inherit; }
 .checkout-bar > div { display: flex; flex-direction: column; }
 .checkout-total { font-size: 1.35rem; }
 .soon { font-size: 0.7rem; background: rgb(255 255 255 / 0.25); padding: 2px 7px; border-radius: 6px; }
+
+/* ---------- Hugeicons alignment ---------- */
+.hi { flex: none; display: block; }
+.logo-mark { color: var(--primary); display: flex; }
+.search-icon { display: flex; }
+.location, .back-link, .side-label, .link-btn, .savings { display: inline-flex; align-items: center; gap: 6px; }
+.tabs button, .add-btn, .summary h2, .section-head h2 { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.summary h2, .section-head h2 { justify-content: flex-start; }
+.title-icon { color: var(--primary); }
+.category-icon { color: #2a2f36; }
+.stepper button, .icon-btn { display: grid; place-items: center; }
+.fav { display: grid; place-items: center; color: var(--muted); }
+.fav.on { color: var(--heart); }
+.fav.on .hi path { fill: currentColor; }
+.empty-icon { color: var(--muted); display: flex; justify-content: center; }
+.hero-art span { font-size: 0; }

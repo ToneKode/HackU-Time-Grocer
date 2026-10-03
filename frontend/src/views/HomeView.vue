@@ -4,6 +4,19 @@ import { products, categories, merchants } from '../data/catalog.js'
 import { bestOffer, discountPct } from '../lib/pricing.js'
 import ProductCard from '../components/shop/ProductCard.vue'
 import MerchantChips from '../components/shop/MerchantChips.vue'
+import Icon from '../components/shop/Icon.vue'
+import {
+  BroccoliIcon, MilkBottleIcon, Bread01Icon, Apple01Icon, TissuePaperIcon, EggsIcon, FlashIcon,
+} from '@hugeicons/core-free-icons'
+
+const heroIcons = [
+  { icon: BroccoliIcon, color: '#2f9e44' },
+  { icon: MilkBottleIcon, color: '#3d6ef0' },
+  { icon: Bread01Icon, color: '#c47f17' },
+  { icon: Apple01Icon, color: '#e03131' },
+  { icon: TissuePaperIcon, color: '#7048e8' },
+  { icon: EggsIcon, color: '#d9480f' },
+]
 
 const merchant = ref(null)
 
@@ -33,7 +46,7 @@ const deals = computed(() => {
         </div>
       </div>
       <div class="hero-art" aria-hidden="true">
-        <span v-for="e in ['🥦', '🥛', '🍞', '🍎', '🧻', '🥚']" :key="e">{{ e }}</span>
+        <span v-for="(h, i) in heroIcons" :key="i" :style="{ color: h.color }"><Icon :icon="h.icon" :size="48" :stroke-width="1.5" /></span>
       </div>
     </section>
 
@@ -45,13 +58,13 @@ const deals = computed(() => {
         class="category-pill"
         :style="{ background: c.tint }"
       >
-        <span class="category-emoji">{{ c.emoji }}</span>{{ c.label }}
+        <Icon :icon="c.icon" :size="20" class="category-icon" />{{ c.label }}
       </RouterLink>
     </nav>
 
     <section>
       <div class="section-head">
-        <h2>⚡ Mega deals <span class="muted">({{ deals.length }})</span></h2>
+        <h2><Icon :icon="FlashIcon" :size="22" class="title-icon" /> Mega deals <span class="muted">({{ deals.length }})</span></h2>
       </div>
       <MerchantChips v-model="merchant" />
       <div class="product-grid">

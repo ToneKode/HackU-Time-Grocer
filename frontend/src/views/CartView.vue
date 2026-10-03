@@ -7,6 +7,11 @@ import { cartLines, cartCount, setQty, clearCart } from '../stores/shop.js'
 import MerchantChips from '../components/shop/MerchantChips.vue'
 import MerchantLogo from '../components/shop/MerchantLogo.vue'
 import QtyStepper from '../components/shop/QtyStepper.vue'
+import Icon from '../components/shop/Icon.vue'
+import {
+  ArrowLeft01Icon, ShoppingCart01Icon, FlashIcon, Store01Icon, ArrowDownRight01Icon, Delete02Icon,
+  ArrowDown01Icon, ArrowUp01Icon, AiMagicIcon,
+} from '@hugeicons/core-free-icons'
 
 const allowed = ref(merchants.map((m) => m.name))
 const mode = ref('mix') // 'mix' | 'single'
@@ -19,7 +24,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
 
 <template>
   <main class="page cart">
-    <RouterLink to="/" class="back-link">← Back to home</RouterLink>
+    <RouterLink to="/" class="back-link"><Icon :icon="ArrowLeft01Icon" :size="16" /> Back to home</RouterLink>
 
     <div class="cart-head">
       <h1>My cart <span v-if="cartCount" class="cart-total-pill">{{ money(mix.total) }}</span></h1>
@@ -27,7 +32,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
     </div>
 
     <div v-if="!cartCount" class="empty-box">
-      <div class="empty-icon">🛒</div>
+      <div class="empty-icon"><Icon :icon="ShoppingCart01Icon" :size="40" :stroke-width="1.5" /></div>
       <h3>Build a basket without overpaying</h3>
       <p class="muted">Add products and Grocer will show where each one is cheapest.</p>
       <RouterLink to="/catalog" class="btn-primary">Check prices</RouterLink>
@@ -41,20 +46,20 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
 
       <div class="tabs" role="tablist">
         <button type="button" role="tab" :aria-selected="mode === 'mix'" :class="{ on: mode === 'mix' }" @click="mode = 'mix'">
-          ⚡ Optimal mix
+          <Icon :icon="FlashIcon" :size="18" /> Optimal mix
         </button>
         <button type="button" role="tab" :aria-selected="mode === 'single'" :class="{ on: mode === 'single' }" @click="mode = 'single'">
-          🏪 One store
+          <Icon :icon="Store01Icon" :size="18" /> One store
         </button>
       </div>
 
       <!-- ---------- Optimal mix ---------- -->
       <template v-if="mode === 'mix'">
         <section class="summary">
-          <h2>⚡ Optimal mix: {{ money(mix.total) }}</h2>
+          <h2><Icon :icon="FlashIcon" :size="20" class="title-icon" /> Optimal mix: {{ money(mix.total) }}</h2>
           <p class="muted small">Each item is bought at the cheapest of your selected stores.</p>
           <p v-if="savings && savings.amount > 0" class="savings">
-            ↘ You save {{ money(savings.amount) }} compared with {{ savings.merchant }}
+            <Icon :icon="ArrowDownRight01Icon" :size="16" /> You save {{ money(savings.amount) }} compared with {{ savings.merchant }}
           </p>
         </section>
 
@@ -71,7 +76,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
             <div class="cart-item-body">
               <div class="cart-item-top">
                 <span class="cart-item-name">{{ item.product.name }}</span>
-                <button type="button" class="icon-btn" aria-label="Remove item" @click="setQty(item.product.id, 0)">🗑</button>
+                <button type="button" class="icon-btn" aria-label="Remove item" @click="setQty(item.product.id, 0)"><Icon :icon="Delete02Icon" :size="18" /></button>
               </div>
               <div class="cart-item-bottom">
                 <QtyStepper :model-value="item.qty" @update:model-value="setQty(item.product.id, $event)" />
@@ -98,7 +103,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
             <div class="cart-item-body">
               <div class="cart-item-top">
                 <span class="cart-item-name">{{ line.product.name }}</span>
-                <button type="button" class="icon-btn" aria-label="Remove item" @click="setQty(line.product.id, 0)">🗑</button>
+                <button type="button" class="icon-btn" aria-label="Remove item" @click="setQty(line.product.id, 0)"><Icon :icon="Delete02Icon" :size="18" /></button>
               </div>
             </div>
           </div>
@@ -108,7 +113,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
       <!-- ---------- One store ---------- -->
       <template v-else>
         <section class="summary">
-          <h2>🏪 Compare by store</h2>
+          <h2><Icon :icon="Store01Icon" :size="20" class="title-icon" /> Compare by store</h2>
           <p class="muted small">What the whole cart costs if you buy everything in one store.</p>
         </section>
 
@@ -128,7 +133,8 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
             </div>
           </header>
           <button type="button" class="link-btn" @click="openStore = openStore === store.merchant ? null : store.merchant">
-            {{ openStore === store.merchant ? '▴ Hide items' : '▾ Show items' }}
+            <Icon :icon="openStore === store.merchant ? ArrowUp01Icon : ArrowDown01Icon" :size="16" />
+            {{ openStore === store.merchant ? 'Hide items' : 'Show items' }}
           </button>
           <ul v-if="openStore === store.merchant" class="store-items">
             <li v-for="item in store.items" :key="item.product.id" :class="{ muted: !item.offer }">
@@ -146,7 +152,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
           <strong class="checkout-total">{{ money(mix.total) }}</strong>
         </div>
         <button type="button" class="btn-primary" disabled title="Coming soon">
-          ✦ Checkout with agent <span class="soon">Soon</span>
+          <Icon :icon="AiMagicIcon" :size="18" /> Checkout with agent <span class="soon">Soon</span>
         </button>
       </section>
     </template>

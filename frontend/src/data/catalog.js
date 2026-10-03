@@ -3,6 +3,10 @@
 // the shop talk about the same products. Prices are HKD.
 //
 // offer: { merchant, price, oldPrice?, inStock? }   (inStock defaults to true)
+import {
+  BroccoliIcon, MilkBottleIcon, RiceBowl01Icon, CookieIcon, SoftDrink01Icon,
+  TissuePaperIcon, ShampooIcon, BabyBottleIcon, MedicineBottle01Icon,
+} from '@hugeicons/core-free-icons'
 
 export const merchants = [
   { name: 'Watsons', short: 'W', color: '#00a3ad' },
@@ -12,15 +16,15 @@ export const merchants = [
 ]
 
 export const categories = [
-  { id: 'fruit-veg', label: 'Fruit & veg', emoji: '🥦', tint: '#eaf6e6' },
-  { id: 'dairy', label: 'Dairy & eggs', emoji: '🥛', tint: '#eef4fb' },
-  { id: 'pantry', label: 'Pantry', emoji: '🍚', tint: '#fbf3e4' },
-  { id: 'snacks', label: 'Snacks', emoji: '🍫', tint: '#f8ece6' },
-  { id: 'drinks', label: 'Drinks', emoji: '🥤', tint: '#e8f3f8' },
-  { id: 'household', label: 'Household', emoji: '🧻', tint: '#f1f1f6' },
-  { id: 'personal', label: 'Personal care', emoji: '🧴', tint: '#f5eef8' },
-  { id: 'baby', label: 'Baby', emoji: '👶', tint: '#fdf1f3' },
-  { id: 'health', label: 'Health', emoji: '💊', tint: '#eef7f3' },
+  { id: 'fruit-veg', label: 'Fruit & veg', icon: BroccoliIcon, tint: '#eaf6e6' },
+  { id: 'dairy', label: 'Dairy & eggs', icon: MilkBottleIcon, tint: '#eef4fb' },
+  { id: 'pantry', label: 'Pantry', icon: RiceBowl01Icon, tint: '#fbf3e4' },
+  { id: 'snacks', label: 'Snacks', icon: CookieIcon, tint: '#f8ece6' },
+  { id: 'drinks', label: 'Drinks', icon: SoftDrink01Icon, tint: '#e8f3f8' },
+  { id: 'household', label: 'Household', icon: TissuePaperIcon, tint: '#f1f1f6' },
+  { id: 'personal', label: 'Personal care', icon: ShampooIcon, tint: '#f5eef8' },
+  { id: 'baby', label: 'Baby', icon: BabyBottleIcon, tint: '#fdf1f3' },
+  { id: 'health', label: 'Health', icon: MedicineBottle01Icon, tint: '#eef7f3' },
 ]
 
 export const products = [

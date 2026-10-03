@@ -2,6 +2,10 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { cartCount } from '../../stores/shop.js'
+import {
+  Home01Icon, GridViewIcon, ShoppingCart01Icon, AiMagicIcon, Search01Icon, Location01Icon, ShoppingBasket01Icon,
+} from '@hugeicons/core-free-icons'
+import Icon from './Icon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,10 +20,10 @@ function search() {
 }
 
 const nav = [
-  { to: '/', label: 'Home', icon: '⌂' },
-  { to: '/catalog', label: 'Catalog', icon: '▦' },
-  { to: '/cart', label: 'Cart', icon: '🛒', badge: true },
-  { to: '/agent', label: 'Agent', icon: '✦' },
+  { to: '/', label: 'Home', icon: Home01Icon },
+  { to: '/catalog', label: 'Catalog', icon: GridViewIcon },
+  { to: '/cart', label: 'Cart', icon: ShoppingCart01Icon, badge: true },
+  { to: '/agent', label: 'Agent', icon: AiMagicIcon },
 ]
 </script>
 
@@ -27,26 +31,26 @@ const nav = [
   <header class="site-header">
     <div class="site-header-inner">
       <RouterLink to="/" class="logo">
-        <span class="logo-mark">🛒</span>
+        <span class="logo-mark"><Icon :icon="ShoppingBasket01Icon" :size="24" :stroke-width="2" /></span>
         <span>grocer</span>
       </RouterLink>
 
       <form class="search" role="search" @submit.prevent="search">
-        <span class="search-icon" aria-hidden="true">⌕</span>
+        <span class="search-icon"><Icon :icon="Search01Icon" :size="18" /></span>
         <input v-model="query" type="search" placeholder="Search for low prices…" aria-label="Search products" />
       </form>
 
       <nav class="nav">
         <RouterLink v-for="item in nav" :key="item.to" :to="item.to" class="nav-link">
-          <span class="nav-icon" aria-hidden="true">
-            {{ item.icon }}
+          <span class="nav-icon">
+            <Icon :icon="item.icon" />
             <span v-if="item.badge && cartCount" class="nav-badge">{{ cartCount }}</span>
           </span>
           <span class="nav-label">{{ item.label }}</span>
         </RouterLink>
       </nav>
 
-      <span class="location">📍 Hong Kong</span>
+      <span class="location"><Icon :icon="Location01Icon" :size="16" /> Hong Kong</span>
     </div>
   </header>
 </template>

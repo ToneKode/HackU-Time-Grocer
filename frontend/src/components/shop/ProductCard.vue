@@ -6,6 +6,8 @@ import { money } from '../../lib/format.js'
 import { qtyOf, setQty, addToCart, favourites, toggleFavourite } from '../../stores/shop.js'
 import MerchantLogo from './MerchantLogo.vue'
 import QtyStepper from './QtyStepper.vue'
+import { FavouriteIcon, PlusSignIcon } from '@hugeicons/core-free-icons'
+import Icon from './Icon.vue'
 
 // merchant: optional store filter; the card then shows that store's price.
 const props = defineProps({
@@ -35,7 +37,7 @@ const qty = computed({
         :aria-label="favourites.ids[product.id] ? 'Remove from favourites' : 'Add to favourites'"
         @click="toggleFavourite(product.id)"
       >
-        {{ favourites.ids[product.id] ? '♥' : '♡' }}
+        <Icon :icon="FavouriteIcon" :size="18" />
       </button>
       <span class="product-emoji" aria-hidden="true">{{ product.emoji }}</span>
       <span class="size">{{ product.size }}</span>
@@ -63,7 +65,7 @@ const qty = computed({
 
     <QtyStepper v-if="qty" v-model="qty" class="product-action" />
     <button v-else type="button" class="add-btn product-action" :disabled="!bestOffer(product)" @click="addToCart(product.id)">
-      + Add to cart
+      <Icon :icon="PlusSignIcon" :size="16" :stroke-width="2.2" /> Add to cart
     </button>
   </article>
 </template>
