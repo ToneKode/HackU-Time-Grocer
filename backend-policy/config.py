@@ -25,9 +25,8 @@ MONTHLY_CAP = 2000.0
 
 MERCHANT_WHITELIST = ["Watsons", "HKTVmall", "PARKnSHOP", "Japan Home Centre"]
 MERCHANT_BLACKLIST = ["DarkWebMart"]
-# cross_team_config.json currently lists [] here, but the test cases need Food /
-# Health (condoms, pills) / Electronics / Alcohol blocked. See README "Open items".
-CATEGORY_BLACKLIST = ["Food", "Alcohol", "Electronics", "Health"]
+# Empty on purpose. A category is allowed unless this list names it.
+CATEGORY_BLACKLIST = []
 
 REASONS = {
     "PASS": "Under HK$500 cap",

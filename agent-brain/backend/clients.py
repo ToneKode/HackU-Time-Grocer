@@ -7,7 +7,6 @@ so POST /agent/intent can still answer the frontend.
 
 from __future__ import annotations
 
-import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -15,8 +14,6 @@ from typing import Any
 import httpx
 
 from policy_rules import TTL_SECONDS, decide
-
-RETRY_AFTER_SECONDS = 5.0   # after a failed call, use the local rules for this long, then try the service again
 
 PUBLIC_ESCALATION_KEYS = (
     "escalation_id",
@@ -34,6 +31,41 @@ PUBLIC_ESCALATION_KEYS = (
 
 def zulu(moment: datetime) -> str:
     return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def policy_snapshot(result: dict) -> dict:
+    return {
+        "status": result["status"],
+        "rule": result.get("rule") or "",
+        "reason": result["reason"],
+        "amount": result["amount"],
+        "currency": result.get("currency", "HKD"),
+        "monthly_spent": result["monthly_spent"],
+        "monthly_remaining": result["monthly_remaining"],
+        "per_transaction_cap": result["per_transaction_cap"],
+        "monthly_cap": result["monthly_cap"],
+        "bulk_ceiling": result["bulk_ceiling"],
+    }
+
+
+def engine_thought(result: dict) -> str:
+    snap = policy_snapshot(result)
+    return (
+        f"Policy engine result: status {snap['status']}, rule {snap['rule']}, "
+        f"reason {snap['reason']}, amount HK${snap['amount']:.2f}, "
+        f"monthly_remaining HK${snap['monthly_remaining']:.2f}, "
+        f"caps {snap['per_transaction_cap']}/{snap['bulk_ceiling']}/{snap['monthly_cap']}."
+    )
+
+
+def _policy_event(reason: str, result: dict) -> dict:
+    return {
+        "event": "POLICY_CHECK",
+        "status": result["status"],
+        "reason": reason,
+        "thought": engine_thought(result),
+        "result": policy_snapshot(result),
+    }
 
 
 def public_escalation(record: dict) -> dict:
@@ -58,7 +90,13 @@ class MallClient:
         return response.json()
 
     def cart(self, sku: str, qty: int) -> dict:
-        response = self.http.post("/cart", json={"items": [{"sku": sku, "qty": qty}]})
+        return self.cart_lines([{"sku": sku, "qty": qty}])
+
+    def cart_lines(self, items: list[dict]) -> dict:
+        response = self.http.post(
+            "/cart",
+            json={"items": [{"sku": item["sku"], "qty": int(item["qty"])} for item in items]},
+        )
         response.raise_for_status()
         return response.json()
 
@@ -91,12 +129,19 @@ class PolicyClient:
         http: httpx.Client | None = None,
         offline: bool = False,
     ):
-        self.offline = offline          # True = never call the service (tests)
-        self._down_until = 0.0          # monotonic time before which the service is not retried
+        self.offline = offline
         self.http = http or httpx.Client(base_url=base_url.rstrip("/"), timeout=0.4)
         self.memory: dict[str, dict] = {}
 
-    def check(self, merchant: str, category: str, amount: float, monthly_spent: float) -> dict:
+    def check(
+        self,
+        merchant: str,
+        category: str,
+        amount: float,
+        monthly_spent: float,
+        sku: str = "",
+        qty: int = 1,
+    ) -> dict:
         remote = self._post(
             "/check_policy",
             {
@@ -104,6 +149,8 @@ class PolicyClient:
                 "category": category,
                 "amount": amount,
                 "currency": "HKD",
+                "sku": sku,
+                "qty": qty,
                 "monthly_spent": monthly_spent,
             },
         )
@@ -112,6 +159,42 @@ class PolicyClient:
             filled.update({key: remote[key] for key in filled if key in remote})
             return filled
         return decide(merchant, category, amount, monthly_spent)
+
+    def check_lines(self, lines: list[dict], amount: float, monthly_spent: float) -> tuple[dict, list[dict]]:
+        """Judge every line, then the landed total. Each call becomes one audit row."""
+        events = []
+        halted = None
+        for index, line in enumerate(lines, start=1):
+            result = self.check(
+                merchant=line["merchant"],
+                category=line["category"],
+                amount=line["line_total"],
+                monthly_spent=monthly_spent,
+                sku=line["sku"],
+                qty=int(line["qty"]),
+            )
+            events.append(_policy_event(f"line {index} {line['sku']} {line['merchant']}: {result['reason']}", result))
+            if halted is None and result.get("rule") in {"category_blacklisted", "merchant_blacklisted", "merchant_not_whitelisted"}:
+                halted = dict(result)
+                halted["amount"] = round(float(amount), 2)
+        if halted is not None:
+            return halted, events
+        categories = {line["category"] for line in lines}
+        merchants = {line["merchant"] for line in lines}
+        # Port 8001 rejects a blank category. A blocked line already returned above.
+        category = next(iter(categories))
+        merchant = merchants.pop() if len(merchants) == 1 else lines[0]["merchant"]
+        total = self.check(
+            merchant=merchant,
+            category=category,
+            amount=amount,
+            monthly_spent=monthly_spent,
+            sku=lines[0]["sku"],
+            qty=1,
+        )
+        landed = f"{round(float(amount), 2):.2f}"
+        events.append(_policy_event(f"basket landed {landed}: {total['reason']}", total))
+        return total, events
 
     def create_escalation(self, draft: dict) -> dict:
         escalation_id = "esc_" + uuid.uuid4().hex[:8]
@@ -125,18 +208,17 @@ class PolicyClient:
             "remaining_seconds": TTL_SECONDS,
             "_expires_at": expires.isoformat(),
         }
-        product = draft.get("product") or {}
         remote = self._post(
             "/create_escalation",
             {
-                "amount": draft["amount"],
-                "currency": "HKD",
-                "merchant": draft["merchant"],
-                "category": product.get("category", ""),
-                "sku": draft["sku"],
-                "qty": draft.get("qty", 1),
-                "reason": draft["reason"],
-                "monthly_spent": draft.get("monthly_spent", 0),
+                "amount": record["amount"],
+                "currency": record["currency"],
+                "merchant": record["merchant"],
+                "category": record.get("category") or (record.get("product") or {}).get("category") or "",
+                "sku": record["sku"],
+                "qty": int(draft.get("qty") or 1),
+                "reason": record["reason"],
+                "monthly_spent": float(record.get("monthly_spent") or 0),
             },
         )
         if remote and remote.get("escalation_id"):
@@ -181,12 +263,12 @@ class PolicyClient:
         return self._request("GET", path, None)
 
     def _request(self, method: str, path: str, payload: dict | None) -> Any:
-        if self.offline or time.monotonic() < self._down_until:
+        if self.offline:
             return None
         try:
             response = self.http.request(method, path, json=payload)
         except httpx.HTTPError:
-            self._down_until = time.monotonic() + RETRY_AFTER_SECONDS
+            self.offline = True
             return None
         if response.status_code >= 400:
             return None

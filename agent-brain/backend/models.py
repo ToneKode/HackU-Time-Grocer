@@ -2,7 +2,15 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-PlanStatus = Literal["READY", "COMPLETED", "HALTED", "ESCALATED", "ABORTED", "FAILED"]
+PlanStatus = Literal[
+    "READY",
+    "COMPLETED",
+    "HALTED",
+    "ESCALATED",
+    "ABORTED",
+    "FAILED",
+    "NEEDS_INPUT",
+]
 PolicyStatus = Literal["PASS", "ESCALATE", "HALT", "SKIPPED"]
 EscalationStatus = Literal["PENDING", "APPROVED", "REFUSED", "EXPIRED"]
 
@@ -65,6 +73,7 @@ class PolicyResult(BaseModel):
     per_transaction_cap: int
     monthly_cap: int
     bulk_ceiling: int
+    rule: str = ""
 
 
 class PayResult(BaseModel):
@@ -90,6 +99,36 @@ class Escalation(BaseModel):
     reason: str
 
 
+class BasketLine(BaseModel):
+    need: str
+    priority: int
+    sku: str
+    name: str
+    merchant: str
+    category: str
+    sell_point: str = ""
+    qty: int
+    unit_price: float
+    line_total: float
+    product_reason: str
+    merchant_reason: str
+
+
+class BasketRepair(BaseModel):
+    need: str
+    from_sku: str
+    to_sku: str
+    saved: float
+    reason: str
+
+
+class ReactStep(BaseModel):
+    thought: str = ""
+    action: str = ""
+    observation: str = ""
+    source: str = ""
+
+
 class AuditEntry(BaseModel):
     index: int
     ts: str
@@ -97,6 +136,7 @@ class AuditEntry(BaseModel):
     status: str
     reason: str
     thought: str
+    result: dict | None = None
     prev_hash: str
     hash: str
 
@@ -110,4 +150,11 @@ class ActionPlan(BaseModel):
     policy: PolicyResult | None = None
     escalation: Escalation | None = None
     payment: PayResult | None = None
+    lines: list[BasketLine] = Field(default_factory=list)
+    repairs: list[BasketRepair] = Field(default_factory=list)
+    payment_route: str = ""
+    payment_reason: str = ""
+    question: str = ""
+    reply: str = ""
+    react: list[ReactStep] = Field(default_factory=list)
     audit_log: list[AuditEntry]
