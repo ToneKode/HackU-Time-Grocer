@@ -24,7 +24,7 @@ const deals = computed(() => {
       <div class="hero-text">
         <h1>Compare the whole basket <span class="accent">and let the agent check out</span></h1>
         <p>
-          Build your list once. Time-Grocer finds the cheapest store for every item across
+          Build your list once. Grocer finds the cheapest store for every item across
           {{ merchants.map((m) => m.name).join(', ') }}.
         </p>
         <div class="hero-actions">

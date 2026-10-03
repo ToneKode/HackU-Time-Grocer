@@ -28,7 +28,7 @@ const nav = [
     <div class="site-header-inner">
       <RouterLink to="/" class="logo">
         <span class="logo-mark">🛒</span>
-        <span>time-grocer</span>
+        <span>grocer</span>
       </RouterLink>
 
       <form class="search" role="search" @submit.prevent="search">

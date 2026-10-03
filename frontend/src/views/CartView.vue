@@ -29,7 +29,7 @@ const savings = computed(() => mixSavings(mix.value, stores.value))
     <div v-if="!cartCount" class="empty-box">
       <div class="empty-icon">🛒</div>
       <h3>Build a basket without overpaying</h3>
-      <p class="muted">Add products and Time-Grocer will show where each one is cheapest.</p>
+      <p class="muted">Add products and Grocer will show where each one is cheapest.</p>
       <RouterLink to="/catalog" class="btn-primary">Check prices</RouterLink>
     </div>
 
