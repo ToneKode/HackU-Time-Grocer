@@ -73,7 +73,7 @@ h2 { font-size: 1rem; margin-bottom: 12px; }
 .field.grow { flex: 1 1 240px; }
 .field input {
   font: inherit; font-size: 1rem; color: var(--text); background: var(--bg);
-  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; width: 100%;
+  border: 1px solid var(--border); border-radius: var(--radius-input); padding: 10px 12px; width: 100%;
 }
 .field input[type='number'] { width: 160px; }
 .suggestions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; width: 100%; font-size: 0.85rem; }
