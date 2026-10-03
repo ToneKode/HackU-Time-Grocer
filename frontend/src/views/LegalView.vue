@@ -5,7 +5,7 @@ import { useRoute } from 'vue-router'
 import { content, fill, LEGAL_UPDATED } from '../content/index.js'
 import { dateLocale } from '../i18n/index.js'
 import Icon from '../components/shop/Icon.vue'
-import { ArrowLeft01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons'
+import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
 
 const route = useRoute()
 const doc = computed(() => content.value[route.meta.doc])
@@ -23,7 +23,6 @@ const updated = computed(() =>
     <header class="legal-head">
       <h1>{{ doc.title }}</h1>
       <p class="muted small">{{ updated }}</p>
-      <p class="legal-draft"><Icon :icon="AlertCircleIcon" :size="16" /> {{ content.draftNotice }}</p>
       <p class="legal-intro">{{ doc.intro }}</p>
     </header>
 

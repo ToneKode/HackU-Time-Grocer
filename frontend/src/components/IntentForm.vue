@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import contract from '../../contract.json'
 
 defineProps({ busy: Boolean })
 const emit = defineEmits(['submit'])
@@ -8,11 +7,7 @@ const emit = defineEmits(['submit'])
 const intent = ref('Buy toilet paper')
 const monthlySpent = ref(0)
 
-const demos = [
-  { key: 'happy_path', label: 'Normal order' },
-  { key: 'halted_monthly', label: 'Monthly cap hit' },
-  { key: 'escalation_bulk', label: 'Bulk (needs approval)' },
-].map((d) => ({ ...d, request: contract.examples[d.key].request }))
+const suggestions = ['Buy toilet paper', 'Buy bulk toilet paper']
 
 function submit() {
   const text = intent.value.trim()
@@ -20,9 +15,8 @@ function submit() {
   emit('submit', { intent: text, monthly_spent: Number(monthlySpent.value) || 0 })
 }
 
-function runDemo(request) {
-  intent.value = request.intent
-  monthlySpent.value = request.monthly_spent
+function useSuggestion(text) {
+  intent.value = text
   submit()
 }
 </script>
@@ -39,17 +33,17 @@ function runDemo(request) {
     </label>
     <button class="btn primary" type="submit" :disabled="busy">Send to agent</button>
 
-    <div class="demos">
-      <span class="muted">Demo:</span>
+    <div class="suggestions">
+      <span class="muted">Try:</span>
       <button
-        v-for="demo in demos"
-        :key="demo.key"
+        v-for="text in suggestions"
+        :key="text"
         type="button"
         class="btn ghost small"
         :disabled="busy"
-        @click="runDemo(demo.request)"
+        @click="useSuggestion(text)"
       >
-        {{ demo.label }}
+        {{ text }}
       </button>
     </div>
   </form>

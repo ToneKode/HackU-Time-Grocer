@@ -131,9 +131,6 @@ const budget = computed(() => {
       <h1>Agent checkout</h1>
       <p class="muted">The agent buys for you, a parent approves big orders</p>
     </div>
-    <span class="pill" :class="api.useMock ? 'pill-warn' : 'pill-ok'">
-      {{ api.useMock ? 'Mock data' : 'Live API' }}
-    </span>
   </header>
 
   <main class="layout">
@@ -157,7 +154,7 @@ const budget = computed(() => {
 
       <section v-else-if="!loading" class="card empty">
         <h2>No purchase yet</h2>
-        <p class="muted">Type what you need, or try one of the demo buttons.</p>
+        <p class="muted">Type what you need, or try one of the suggestions.</p>
       </section>
     </section>
 

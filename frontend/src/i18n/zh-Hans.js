@@ -113,7 +113,6 @@ export default {
     days: '{n} 天',
     lowHere: '本店 {days} 天最低价',
     priceHistory: '价格走势',
-    demoData: '演示数据',
     period: '时段',
     periodOption: '{n} 天',
     todaysBest: '今日最低价',

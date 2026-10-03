@@ -112,7 +112,6 @@ export default {
     days: '{n} day | {n} days',
     lowHere: '{days}-day low here',
     priceHistory: 'Price history',
-    demoData: 'demo data',
     period: 'Period',
     periodOption: '{n} days',
     todaysBest: "Today's best",

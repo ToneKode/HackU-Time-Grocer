@@ -188,7 +188,7 @@ function goBack() {
       <div class="pd-history-head">
         <div>
           <h2 class="pd-h2">{{ $t('product.priceHistory') }}</h2>
-          <p class="muted small">{{ fmtDate(history.start) }} – {{ fmtDate(history.end) }} · {{ $t('product.demoData') }}</p>
+          <p class="muted small">{{ fmtDate(history.start) }} – {{ fmtDate(history.end) }}</p>
         </div>
         <div class="segmented" role="group" :aria-label="$t('product.period')">
           <button

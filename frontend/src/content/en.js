@@ -1,7 +1,6 @@
 // About page + legal documents (English). Plain text only — rendered with {{ }}, never v-html.
-// DRAFT for the HackU demo: must be reviewed by a Hong Kong solicitor before launch.
+// Legal text must be reviewed by a Hong Kong solicitor before launch.
 export default {
-  draftNotice: 'Draft for the HackU demo. To be reviewed by a Hong Kong solicitor before launch.',
   updated: 'Last updated {date}',
   backHome: 'Back to home',
   contents: 'Contents',
@@ -15,15 +14,6 @@ export default {
     lead:
       'Grocer brings Hong Kong supermarket and pharmacy prices into one place, finds the cheapest store for every item, and lets an AI agent check out for you, inside spending rules you control.',
     cta: 'Compare prices',
-    teamTitle: 'The team',
-    teamText:
-      'Grocer started at the HackU hackathon. We are a team of four, and we split the work the way the product is built:',
-    team: [
-      { role: 'Agent brain', text: 'Turns "buy toilet paper" into a search, a priced cart and a policy check.' },
-      { role: 'Policy engine', text: 'Enforces spending caps, approvals and the tamper-evident audit log.' },
-      { role: 'Frontend', text: 'The shop, price history and approval screens you are using now.' },
-      { role: 'Mock mall', text: 'A sandbox of stores and payments so the agent can be tested safely.' },
-    ],
     whatTitle: 'What Grocer does',
     whatText: 'One search instead of four shopping apps.',
     steps: [
@@ -37,7 +27,7 @@ export default {
       { title: 'You stay in control', text: 'The agent can only spend inside your rules, at stores you allow. You can switch it off at any time.' },
       { title: 'Every step is recorded', text: 'Each agent action is written to a hash-chained log, so nothing can be changed afterwards without it showing.' },
     ],
-    contactTitle: 'Write to the team',
+    contactTitle: 'Contact us',
     contactEmail: 'hello@grocer.example',
   },
 

@@ -515,10 +515,7 @@ button { font: inherit; color: inherit; }
 /* ---------- Legal documents ---------- */
 .legal { max-width: 760px; gap: 18px; }
 .legal-head h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); letter-spacing: -0.02em; margin-bottom: 4px; }
-.legal-draft {
-  display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 14px; padding: 6px 10px;
-  border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 0.8rem; font-weight: 600;
-}
+.legal-head .muted { margin-bottom: 14px; }
 .legal-intro { font-size: 1.02rem; line-height: 1.6; }
 .legal-toc { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 18px; }
 .legal-toc-title { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
@@ -542,7 +539,6 @@ button { font: inherit; color: inherit; }
 .about-text { color: var(--muted); max-width: 65ch; line-height: 1.6; }
 .about-grid { display: grid; gap: 14px; margin-top: 6px; }
 .about-grid.three { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.about-grid.four { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .about-card {
   background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px;
   display: flex; flex-direction: column; gap: 8px;

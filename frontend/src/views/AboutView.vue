@@ -3,13 +3,11 @@ import { computed } from 'vue'
 import { content } from '../content/index.js'
 import Icon from '../components/shop/Icon.vue'
 import {
-  AiBrain01Icon, Shield01Icon, ComputerIcon, Store01Icon,
   ChartIncreaseIcon, SecurityCheckIcon, ShoppingCartCheck01Icon,
   RankingIcon, UserCheck01Icon, LinkSquare01Icon, Mail01Icon,
 } from '@hugeicons/core-free-icons'
 
 const about = computed(() => content.value.about)
-const teamIcons = [AiBrain01Icon, Shield01Icon, ComputerIcon, Store01Icon]
 const stepIcons = [ChartIncreaseIcon, SecurityCheckIcon, ShoppingCartCheck01Icon]
 const principleIcons = [RankingIcon, UserCheck01Icon, LinkSquare01Icon]
 </script>
@@ -45,18 +43,6 @@ const principleIcons = [RankingIcon, UserCheck01Icon, LinkSquare01Icon]
           <Icon :icon="principleIcons[i]" :size="24" class="about-icon" />
           <h3>{{ p.title }}</h3>
           <p>{{ p.text }}</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="about-block">
-      <p class="about-kicker">{{ about.teamTitle }}</p>
-      <p class="about-text">{{ about.teamText }}</p>
-      <div class="about-grid four">
-        <article v-for="(member, i) in about.team" :key="i" class="about-card">
-          <Icon :icon="teamIcons[i]" :size="24" class="about-icon" />
-          <h3>{{ member.role }}</h3>
-          <p>{{ member.text }}</p>
         </article>
       </div>
     </section>

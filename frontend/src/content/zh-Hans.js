@@ -1,6 +1,5 @@
 // 关于页面及法律文件（简体中文）。如与英文版本有歧义，以英文版本为准。
 export default {
-  draftNotice: 'HackU 演示草稿，正式上线前须由香港律师审阅。',
   updated: '最后更新：{date}',
   backHome: '返回首页',
   contents: '目录',
@@ -14,14 +13,6 @@ export default {
     lead:
       'Grocer 将香港超市和药房的价格集中在一处，为每件商品找出最便宜的商店，并由 AI 代理在你设定的消费规则内帮你结账。',
     cta: '比较价格',
-    teamTitle: '团队',
-    teamText: 'Grocer 诞生于 HackU 黑客松。我们是一支四人团队，按产品的结构分工：',
-    team: [
-      { role: '代理大脑', text: '把“买卫生纸”变成搜索、算好价格的购物车和政策检查。' },
-      { role: '政策引擎', text: '执行消费上限、审批流程以及防篡改的审计记录。' },
-      { role: '前端', text: '你正在使用的商店、价格走势和审批界面。' },
-      { role: '模拟商场', text: '商店和支付的沙盒，让代理可以安全地测试。' },
-    ],
     whatTitle: 'Grocer 做什么',
     whatText: '一次搜索，取代四个购物应用。',
     steps: [
@@ -35,7 +26,7 @@ export default {
       { title: '由你掌控', text: '代理只能在你的规则内、在你允许的商店消费。你可以随时关闭代理。' },
       { title: '每一步都有记录', text: '代理的每个操作都写入哈希链记录，事后任何改动都会被发现。' },
     ],
-    contactTitle: '联系团队',
+    contactTitle: '联系我们',
     contactEmail: 'hello@grocer.example',
   },
 
