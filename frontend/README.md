@@ -43,6 +43,7 @@ VITE_POLICY_URL=http://localhost:8001
 | `src/lib/pricing.js` | Cheapest offer, optimal mix, single-store totals, savings |
 | `src/stores/shop.js` | Cart + favourites (saved in localStorage) |
 | `src/views/` | One file per page |
+| `src/content/` | About page and legal documents (Terms, Return Policy, Privacy Policy) in all three languages. **Drafts: have a Hong Kong solicitor review before launch.** Update `LEGAL_UPDATED` in `index.js` when you change them |
 | `src/i18n/` | Translations: `en.js`, `zh-Hant.js` (繁體), `zh-Hans.js` (简体) for UI text; `products.js` for product and store names |
 | `src/components/shop/` | Header, product card, store chips, qty stepper |
 | `src/views/AgentView.vue` | Agent page state: sends the intent, polls the escalation every second, handles Approve/Refuse |

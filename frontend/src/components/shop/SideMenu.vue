@@ -44,7 +44,7 @@ function chooseTheme(name) {
 }
 const router = useRouter()
 
-// TODO: wire up auth and info pages.
+// TODO: wire up sign-in.
 const settings = computed(() => [
   { id: 'language', icon: TranslateIcon, label: t('menu.language'), value: currentLanguage.value, action: () => showView('language') },
   { id: 'theme', icon: resolvedTheme.value === 'dark' ? Moon02Icon : Sun03Icon, label: t('menu.theme'), value: themeLabel(themePref.value), action: () => showView('theme') },
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
 
         <!-- Info pages -->
         <section class="menu-section">
-          <button v-for="item in pages" :key="item.id" type="button" class="menu-row">
+          <button v-for="item in pages" :key="item.id" type="button" class="menu-row" @click="router.push(`/${item.id}`)">
             <Icon :icon="item.icon" :size="20" class="menu-row-icon" />
             <span class="menu-row-main">{{ item.label }}</span>
           </button>
